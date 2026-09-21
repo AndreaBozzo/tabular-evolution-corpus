@@ -22,7 +22,7 @@ jobs:
       UV_PYTHON: ${{ matrix.python }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0  # no moving major tag after v7
       - run: uv sync --locked
       - run: uv run pytest
       # Regenerating must reproduce the committed files byte-for-byte on every
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0  # no moving major tag after v7
       - run: uv sync --locked --group compat
       # These tests skip when an engine is missing; here all three must run.
       - name: compat tests pass without skips
