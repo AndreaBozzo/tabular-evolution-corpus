@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "string_to_large_string",
+  "title": "string to large_string",
+  "category": "representation",
+  "description": "A string column becomes large_string (64-bit offsets). Values are unchanged; they include an empty string, whitespace, the literal text NULL, CJK, an emoji, and 'cafe' with the accent both composed (U+00E9) and decomposed (e + U+0301).",
+  "notes": [
+    "The difference exists only in the stored Arrow schema. Both files have the same Parquet schema (BYTE_ARRAY, String), so a reader that ignores the Arrow schema sees no change at all."
+  ],
+  "tags": [
+    "change-type",
+    "string",
+    "offsets",
+    "unicode",
+    "arrow-only"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 8,
+      "fingerprint": "sha256:af037b683e64ba1bd9e63dd778b55bea85f8e898f85becfa6f4450ba01a036c7",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 8,
+      "fingerprint": "sha256:4ed55bd1dd61a05cd056a56e3d0554a6f764bd6a03522e3189372a421d692f9d",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "label",
+          "type": "large_string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "label",
+          "old_type": "string",
+          "new_type": "large_string"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

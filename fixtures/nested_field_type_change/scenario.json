@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "nested_field_type_change",
+  "title": "Nested fields widen from float32 to float64",
+  "category": "structural",
+  "description": "Both non-nullable fields of a nullable position struct change from float32 to float64. Every float32 value is exactly representable as float64 and is unchanged, which means the v1 value of 0.1 is 0.10000000149011612, not the float64 nearest to 0.1.",
+  "notes": [
+    "One row has a null struct whose children are declared non-nullable: the children have no value in that row because their parent is null."
+  ],
+  "tags": [
+    "struct",
+    "nested",
+    "change-type",
+    "floating-point",
+    "widening",
+    "nested-nulls"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:dcc1dfd854bf8926e56ca83cbd26ffe20d144fd6f98b468142a510c8f116b2ec",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "position",
+          "type": "struct<lat: float not null, lon: float not null>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:e189ef799a61251126841ba16c3433a2da8673c0f4d37b546b0bafa62c294967",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "position",
+          "type": "struct<lat: double not null, lon: double not null>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "position.lat",
+          "old_type": "float",
+          "new_type": "double"
+        },
+        {
+          "kind": "change_type",
+          "path": "position.lon",
+          "old_type": "float",
+          "new_type": "double"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

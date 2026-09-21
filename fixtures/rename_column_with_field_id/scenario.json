@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "rename_column_with_field_id",
+  "title": "Rename column, identified by Parquet field id",
+  "category": "structural",
+  "description": "Column full_name is renamed to display_name. Both files carry Parquet field ids and the renamed column keeps field id 2, which is the evidence that this is a rename. Values are unchanged; they include 'Jose' with a composed and with a decomposed accent, which are different values.",
+  "notes": [
+    "Without field ids a rename is physically indistinguishable from removing one column and adding another with the same values. The corpus only records a rename when the file carries evidence for it."
+  ],
+  "tags": [
+    "rename-field",
+    "field-id",
+    "unicode"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:bcc8c501e951e06ca6fca8d17fbb50f419f9bccb5c65d5b3a13b6b6b9fc1e99c",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false,
+          "field_id": 1
+        },
+        {
+          "name": "full_name",
+          "type": "string",
+          "nullable": true,
+          "field_id": 2
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "nullable": true,
+          "field_id": 3
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:7da200928b89a496a2b3147837f7860b8c400974d0a7a4af56084d64a008ef4e",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false,
+          "field_id": 1
+        },
+        {
+          "name": "display_name",
+          "type": "string",
+          "nullable": true,
+          "field_id": 2
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "nullable": true,
+          "field_id": 3
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "rename_field",
+          "path": "display_name",
+          "old_path": "full_name",
+          "field_id": 2
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": false,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

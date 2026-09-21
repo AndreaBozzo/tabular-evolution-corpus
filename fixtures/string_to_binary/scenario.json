@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "string_to_binary",
+  "title": "string to binary holding the UTF-8 bytes",
+  "category": "representation",
+  "description": "A string column becomes a binary column. Each v1 value is the UTF-8 encoding of the v0 value. Text and bytes are different kinds of value, so values are not preserved even though the stored bytes are identical. The composed and decomposed 'cafe' encode to different bytes.",
+  "notes": [
+    "At the Parquet level both columns are BYTE_ARRAY; only the String logical annotation is removed."
+  ],
+  "tags": [
+    "change-type",
+    "string",
+    "binary",
+    "unicode"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:1d2caddd132217e781f4c0af6de1abd1d098bb9c58e2716ea2b8041d758d6c56",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "payload",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:04a2d7a0380eb970df52303bec4f6e581077e70401e730f8926d84f2e4fa0919",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "payload",
+          "type": "binary",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "payload",
+          "old_type": "string",
+          "new_type": "binary"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "payload",
+            "relation": "utf8_encoded"
+          }
+        ],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

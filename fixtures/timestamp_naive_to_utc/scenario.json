@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "timestamp_naive_to_utc",
+  "title": "Naive timestamp becomes UTC timestamp",
+  "category": "temporal",
+  "description": "A timestamp column without a time zone becomes timestamp with tz=UTC. The stored integers are identical, so each wall-clock value in v0 is reinterpreted as the same wall-clock value in UTC. A naive value and a zoned value are not the same value.",
+  "notes": [
+    "At the Parquet level this is the isAdjustedToUTC flag of the Timestamp logical type changing from false to true; the physical INT64 values are unchanged.",
+    "Values include one microsecond before the epoch, the epoch, a leap day and a wall-clock time that does not exist in Central European time."
+  ],
+  "tags": [
+    "change-type",
+    "timestamp",
+    "timezone",
+    "utc"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:ad6f3633367e76d56dca96b7ca6530e97c855cf26d71ccb0264a35da1752fc58",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_time",
+          "type": "timestamp[us]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:fa7de3993fb420dfd70186ace21f0493654625a6c25682e648df34380844011b",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_time",
+          "type": "timestamp[us, tz=UTC]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "event_time",
+          "old_type": "timestamp[us]",
+          "new_type": "timestamp[us, tz=UTC]"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "event_time",
+            "relation": "interpreted_as_utc"
+          }
+        ],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

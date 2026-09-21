@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "nullable_column_backfilled",
+  "title": "Nullable column loses its nulls; schema stays nullable",
+  "category": "nullability",
+  "description": "Every null in a nullable string column is filled in v1. The schema is identical in both versions: the field is still nullable although v1 contains no nulls. The empty string in v0 is a value, not a null, and is unchanged.",
+  "notes": [
+    "Observing zero nulls in a batch says nothing about the declared nullability. Both files declare the column optional at the Arrow and Parquet levels."
+  ],
+  "tags": [
+    "nullable",
+    "backfill",
+    "no-schema-change",
+    "empty-string"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:7395491df667747e7bc840a44a8a9f7dd8341bde2e6625a32da0c6a7edd3ece8",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:04e5ebdbdf9144bc4866eaf5926038a0fc423b8e21d2c6f3e31bc6c4c1cf4b82",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "email",
+            "relation": "nulls_filled"
+          }
+        ],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AndreaBozzo/tabular-evolution-corpus/schema/scenario.schema.json",
+  "title": "Tabular evolution scenario manifest",
+  "description": "One logical dataset across two or more physical versions, the exhaustive structural difference between consecutive versions, and row/value facts that hold across each transition. Records objective facts only; no compatibility policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "title",
+    "category",
+    "description",
+    "notes",
+    "tags",
+    "row_identity",
+    "versions",
+    "transitions"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "scenario_id": { "$ref": "#/$defs/identifier" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "category": {
+      "enum": ["additive", "subtractive", "numeric", "nullability", "representation", "structural", "temporal", "edge"]
+    },
+    "description": { "type": "string", "minLength": 1 },
+    "notes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+      "uniqueItems": true
+    },
+    "row_identity": {
+      "description": "Top-level columns whose values identify a row in every version (non-null and unique). Empty: rows are identified by position.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/name" },
+      "uniqueItems": true
+    },
+    "versions": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/version" }
+    },
+    "transitions": {
+      "description": "One transition per consecutive pair of versions, in order.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/transition" }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$", "maxLength": 64 },
+    "name": {
+      "description": "A field name. Never contains '.', '[' or ']', which are path syntax.",
+      "type": "string",
+      "pattern": "^[^.\\[\\]]+$"
+    },
+    "path": {
+      "description": "Field names from the root joined by '.'; '[]' after a name is the element of a list or map. Examples: address.postcode, scores[], line_items[].sku, attributes[].value.",
+      "type": "string",
+      "pattern": "^[^.\\[\\]]+(\\[\\])*(\\.[^.\\[\\]]+(\\[\\])*)*$"
+    },
+    "arrow_type": {
+      "description": "Type in the corpus type vocabulary (src/tabular_evolution/types.py), which mirrors Arrow's type names but not its ToString() output. Examples: int64, double, decimal128(9, 2), timestamp[us, tz=UTC], list<int64>, map<string, int32>.",
+      "type": "string",
+      "minLength": 1
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "nullable"],
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "type": { "$ref": "#/$defs/arrow_type" },
+        "nullable": { "type": "boolean" },
+        "field_id": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "file", "row_count", "fingerprint", "schema", "writer", "dictionaries"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^v[0-9]+$" },
+        "file": {
+          "description": "Path relative to the scenario directory.",
+          "type": "string",
+          "pattern": "^[a-z0-9_]+\\.parquet$"
+        },
+        "row_count": { "type": "integer", "minimum": 0 },
+        "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "schema": {
+          "description": "Top-level fields of the Arrow schema stored in the file, in file order.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/field" }
+        },
+        "writer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["use_dictionary"],
+          "properties": { "use_dictionary": { "type": "boolean" } }
+        },
+        "dictionaries": {
+          "description": "Stored dictionary contents, in dictionary order, of top-level dictionary-typed columns.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "values"],
+            "properties": {
+              "path": { "$ref": "#/$defs/name" },
+              "values": { "type": "array" }
+            }
+          }
+        }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "mutations", "invariants"],
+      "properties": {
+        "from": { "type": "string", "pattern": "^v[0-9]+$" },
+        "to": { "type": "string", "pattern": "^v[0-9]+$" },
+        "mutations": {
+          "description": "The complete structural difference between the two stored Arrow schemas.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/mutation" }
+        },
+        "invariants": { "$ref": "#/$defs/invariants" }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "required": ["kind", "path"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["type", "nullable"],
+          "properties": {
+            "kind": { "enum": ["add_field", "remove_field"] },
+            "path": { "$ref": "#/$defs/path" },
+            "type": { "$ref": "#/$defs/arrow_type" },
+            "nullable": { "type": "boolean" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["old_type", "new_type"],
+          "properties": {
+            "kind": { "const": "change_type" },
+            "path": { "$ref": "#/$defs/path" },
+            "old_type": { "$ref": "#/$defs/arrow_type" },
+            "new_type": { "$ref": "#/$defs/arrow_type" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["old_nullable", "new_nullable"],
+          "properties": {
+            "kind": { "const": "change_nullability" },
+            "path": { "$ref": "#/$defs/path" },
+            "old_nullable": { "type": "boolean" },
+            "new_nullable": { "type": "boolean" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["old_path", "field_id"],
+          "properties": {
+            "kind": { "const": "rename_field" },
+            "path": { "$ref": "#/$defs/path" },
+            "old_path": { "$ref": "#/$defs/path" },
+            "field_id": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["old_order", "new_order"],
+          "properties": {
+            "kind": { "const": "reorder_fields" },
+            "path": {
+              "description": "Parent path; empty string for the top level.",
+              "anyOf": [{ "const": "" }, { "$ref": "#/$defs/path" }]
+            },
+            "old_order": { "type": "array", "items": { "$ref": "#/$defs/name" } },
+            "new_order": { "type": "array", "items": { "$ref": "#/$defs/name" } }
+          }
+        }
+      ]
+    },
+    "invariants": {
+      "description": "Row- and value-level facts. Each boolean is checked in both directions: false is a claim too.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_count_preserved",
+        "row_identity_preserved",
+        "rows_retained",
+        "paths_retained",
+        "common_values_preserved",
+        "value_changes",
+        "parquet_schema_preserved"
+      ],
+      "properties": {
+        "row_count_preserved": { "type": "boolean" },
+        "row_identity_preserved": {
+          "description": "The ordered sequence of row identity keys is identical.",
+          "type": "boolean"
+        },
+        "rows_retained": { "description": "Every identity key of 'from' exists in 'to'.", "type": "boolean" },
+        "paths_retained": {
+          "description": "Every field path of 'from' exists in 'to' under the same name.",
+          "type": "boolean"
+        },
+        "common_values_preserved": {
+          "description": "For every row present in both versions and every common path, values are equal.",
+          "type": "boolean"
+        },
+        "value_changes": {
+          "description": "Exactly the common paths whose values differ; empty if and only if common_values_preserved.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "relation"],
+            "properties": {
+              "path": { "$ref": "#/$defs/path" },
+              "relation": {
+                "enum": [
+                  "nulls_filled",
+                  "nulled",
+                  "truncated_toward_zero",
+                  "nearest_float64",
+                  "utf8_encoded",
+                  "interpreted_as_utc"
+                ]
+              }
+            }
+          }
+        },
+        "parquet_schema_preserved": {
+          "description": "The Parquet schema (ignoring the stored Arrow schema) is identical.",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

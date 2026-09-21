@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "add_nullable_int64_column",
+  "title": "Add nullable int64 column",
+  "category": "additive",
+  "description": "A nullable int64 column is appended. Its values include zero, a negative value, nulls and both int64 extremes. Existing columns and rows are unchanged.",
+  "notes": [],
+  "tags": [
+    "add-field",
+    "integer",
+    "nullable",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:ffbd13144dd0c4b932b54b17badd51ef9e9209a5e577a165cab231d0fed9b6d2",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:0e2387711427d5d742df3b176e5b6190ad79df5438382c28e06e45ee9ff1233e",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "loyalty_points",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "add_field",
+          "path": "loyalty_points",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

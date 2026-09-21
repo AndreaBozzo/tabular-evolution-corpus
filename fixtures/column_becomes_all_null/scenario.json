@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "column_becomes_all_null",
+  "title": "Populated column becomes entirely null",
+  "category": "nullability",
+  "description": "Every value of a nullable float64 column is null in v1. The schema is unchanged. v0 contains NaN, -0.0 and infinity, none of which is a null.",
+  "notes": [
+    "v0 has exactly one null. Systems that count NaN as missing report two; that is a policy of those systems, not a property of the file."
+  ],
+  "tags": [
+    "nullable",
+    "all-null",
+    "no-schema-change",
+    "nan",
+    "infinity"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:3ef9076f485c18b6a67b93cbbba562eb3554c37b29f734567bf15bd45da5d1ba",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "discount",
+          "type": "double",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:3977f21592cfa279f263a62b343471ef4a20347ffe6a6001cfab216f43d39751",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "discount",
+          "type": "double",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "discount",
+            "relation": "nulled"
+          }
+        ],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

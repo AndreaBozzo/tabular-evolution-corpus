@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "add_nullable_string_column",
+  "title": "Add nullable string column",
+  "category": "additive",
+  "description": "A nullable string column is appended. Every existing column, value and row is unchanged. The new column holds both nulls and empty strings, which are different values.",
+  "notes": [],
+  "tags": [
+    "add-field",
+    "string",
+    "nullable"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:ffbd13144dd0c4b932b54b17badd51ef9e9209a5e577a165cab231d0fed9b6d2",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:3d0adf61168f53d1f9fcfbc45c5b056f18a1acdbfd57826e5dd6d970568ca47c",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "customer_segment",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "add_field",
+          "path": "customer_segment",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

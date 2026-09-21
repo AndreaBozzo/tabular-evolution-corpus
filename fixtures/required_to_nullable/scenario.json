@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "required_to_nullable",
+  "title": "Non-nullable column becomes nullable",
+  "category": "nullability",
+  "description": "A non-nullable string column is declared nullable in v1. The data is identical and contains no nulls in either version; only the declaration changes (Parquet repetition required -> optional).",
+  "notes": [],
+  "tags": [
+    "change-nullability",
+    "string",
+    "no-value-change"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:70f5dd82fa712a344d629f8e1333db830ebf3b3092eb9c405c9b26ccff09ec1c",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "sku",
+          "type": "string",
+          "nullable": false
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:96301221808db936bc4757779a58856de486759ecc539da7c2763b6ffb1ff9cc",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "sku",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_nullability",
+          "path": "sku",
+          "old_nullable": false,
+          "new_nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

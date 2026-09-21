@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "add_all_null_column",
+  "title": "Add a typed all-null column, then backfill it",
+  "category": "additive",
+  "description": "v1 adds a string column in which every value is null. v2 backfills it without any schema change. The column is typed string in both v1 and v2; only its values differ.",
+  "notes": [
+    "The v1 column is declared string, not the Arrow null type. A column that is inferred as the null type from all-null data is a different case: see null_type_to_string."
+  ],
+  "tags": [
+    "add-field",
+    "all-null",
+    "backfill",
+    "multi-version"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:ffbd13144dd0c4b932b54b17badd51ef9e9209a5e577a165cab231d0fed9b6d2",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:00c68874a96cb78066cd6a665964eb546ffbbf4c48d0c119ef8e7a72a26cfdcb",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "referrer",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v2",
+      "file": "v2.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:8765da5f8f45127f829ad9538ef86cfee69ec7e05752d7af32209e19b15f51c2",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "referrer",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "add_field",
+          "path": "referrer",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    },
+    {
+      "from": "v1",
+      "to": "v2",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "referrer",
+            "relation": "nulls_filled"
+          }
+        ],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "widen_int32_to_int64",
+  "title": "Widen int32 to int64",
+  "category": "numeric",
+  "description": "An int32 column becomes int64. Values, including both int32 extremes, zero and a null, are unchanged.",
+  "notes": [],
+  "tags": [
+    "change-type",
+    "integer",
+    "widening",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:ac3c16abadb0598042a7d24873373bcd88ed27198890526a07e71caa6469ba4e",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "int32",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:49ad7406c3512c129d76d7a58b9c29d2298363952dab9cfb529fd61777c23db7",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "quantity",
+          "old_type": "int32",
+          "new_type": "int64"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

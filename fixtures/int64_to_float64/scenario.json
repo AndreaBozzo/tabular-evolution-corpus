@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "int64_to_float64",
+  "title": "int64 to float64 with values beyond 2^53",
+  "category": "numeric",
+  "description": "An int64 column becomes float64. Each v1 value is the nearest float64 to the v0 value. 2^53 and -2^63 are exactly representable and unchanged; 2^53 + 1 and the int64 maximum are not, so those two values change.",
+  "notes": [
+    "The v1 value for the int64 maximum is 2^63, which is outside the int64 range: casting it back to int64 overflows."
+  ],
+  "tags": [
+    "change-type",
+    "integer",
+    "floating-point",
+    "precision-loss",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:86f0e7ca2a815f9a6c7111edd0e533087dd00f2350da1d27a374c3f8e0e4aad0",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "measurement",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:07854510d0a27be81850e37bb14a963855c9cf2c7aa4faa08313bd11bf33375d",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "measurement",
+          "type": "double",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "measurement",
+          "old_type": "int64",
+          "new_type": "double"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "measurement",
+            "relation": "nearest_float64"
+          }
+        ],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

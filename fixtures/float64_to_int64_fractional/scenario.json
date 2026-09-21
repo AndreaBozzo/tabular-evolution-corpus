@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "float64_to_int64_fractional",
+  "title": "float64 to int64 with fractional values",
+  "category": "numeric",
+  "description": "A float64 column becomes int64. v0 holds fractional values; each v1 value is the v0 value truncated toward zero. The values distinguish truncation from rounding: 1.5 -> 1, 2.999 -> 2, -1.5 -> -1.",
+  "notes": [
+    "Truncation is what this producer did. It is not a statement of how a cast ought to behave; rounding, rejection and nulling are all observed in practice.",
+    "NaN and infinities are deliberately absent: they have no int64 value, and including them would mix a second change into this scenario."
+  ],
+  "tags": [
+    "change-type",
+    "floating-point",
+    "integer",
+    "narrowing",
+    "precision-loss"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:166fb5770e018ab4f698312d8933ddc3e37b5ff37ed5a9a4529ebfda3fc380ff",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "double",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:15ee369c451d021b8d3ef93df90df199f0ac31de38f407a92e1e54e70f13697e",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "amount",
+          "old_type": "double",
+          "new_type": "int64"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "amount",
+            "relation": "truncated_toward_zero"
+          }
+        ],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "reorder_columns",
+  "title": "Reorder columns",
+  "category": "structural",
+  "description": "The same four columns appear in a different order. Names, types, nullability and values are unchanged. Neither order is alphabetical, so a reader that sorts columns by name disagrees with both.",
+  "notes": [],
+  "tags": [
+    "reorder-fields",
+    "column-order"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:e7bd349f7eae6691f2bc0ab2a70ac040ca666f58e8acd691ed32436048545f03",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:a514e4bbb4aee2c15f1df67a2100def2bedf8bd85282eafede8c60b4f1ca2c0c",
+      "schema": [
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true
+        },
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "nullable": true
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "reorder_fields",
+          "path": "",
+          "old_order": [
+            "id",
+            "region",
+            "amount",
+            "active"
+          ],
+          "new_order": [
+            "amount",
+            "id",
+            "active",
+            "region"
+          ]
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

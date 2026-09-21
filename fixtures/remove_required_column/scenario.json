@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "remove_required_column",
+  "title": "Remove non-nullable populated column",
+  "category": "subtractive",
+  "description": "A non-nullable string column with a value in every row is removed. The remaining columns and all rows are unchanged.",
+  "notes": [],
+  "tags": [
+    "remove-field",
+    "string",
+    "required"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:e9c57949b192096eb9a46534c80fabe05061656018bccc1fc10bb57ae82616bb",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "country_code",
+          "type": "string",
+          "nullable": false
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:ffbd13144dd0c4b932b54b17badd51ef9e9209a5e577a165cab231d0fed9b6d2",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "remove_field",
+          "path": "country_code",
+          "type": "string",
+          "nullable": false
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": false,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "decimal_scale_increase",
+  "title": "Increase decimal scale at fixed precision",
+  "category": "numeric",
+  "description": "A decimal128(9, 2) column becomes decimal128(9, 4). Precision is unchanged, so the largest representable magnitude shrinks from 9999999.99 to 99999.9999. Every v0 value still fits and every value is numerically unchanged (1.20 and 1.2000 are the same number).",
+  "notes": [
+    "The type change narrows the value range while widening the scale; a v0 value such as 100000.00 would not fit. None of the fixture values are affected."
+  ],
+  "tags": [
+    "change-type",
+    "decimal",
+    "scale"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:6704cd50d57650f1d356aea7ab387d2b9b563c9981aaeba7796306ca527e6bd1",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "price",
+          "type": "decimal128(9, 2)",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:a79e0ee3fdef5f5be10b5e383e6270e8878eee342b012bdefdd6d4608cb4beca",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "price",
+          "type": "decimal128(9, 4)",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "price",
+          "old_type": "decimal128(9, 2)",
+          "new_type": "decimal128(9, 4)"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

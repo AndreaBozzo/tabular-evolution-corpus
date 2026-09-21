@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "add_field_in_list_of_struct",
+  "title": "Add a field to the structs inside a list",
+  "category": "structural",
+  "description": "Each element of a list<struct> column gains a nullable float64 field discount. Rows include a null list, an empty list and a list with a null element. Existing element values are unchanged.",
+  "notes": [],
+  "tags": [
+    "list",
+    "struct",
+    "nested",
+    "add-field",
+    "nested-nulls"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:70cac456c966e83ece8cbfa7e878625a2f2551db19687cf90590f2c2439e9e08",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "line_items",
+          "type": "list<struct<sku: string, qty: int32>>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:529bf08d7640137b7763e571a81bc2f48871c8d089443f3b4f8f5fe8a0f1e564",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "line_items",
+          "type": "list<struct<sku: string, qty: int32, discount: double>>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "add_field",
+          "path": "line_items[].discount",
+          "type": "double",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

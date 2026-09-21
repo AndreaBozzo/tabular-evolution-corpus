@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "float64_to_int64_integral",
+  "title": "float64 to int64, integral values only",
+  "category": "numeric",
+  "description": "A float64 column becomes int64. Every non-null v0 value is integral and within range, so every value is unchanged. v0 contains -0.0, which equals 0 as a number.",
+  "notes": [],
+  "tags": [
+    "change-type",
+    "floating-point",
+    "integer",
+    "narrowing"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:a43ff1cbf7ce56cf5187a8115795f262f1be1e1569d3dec88e0d81bbd44afb29",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "double",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:d43070493146acfed94ca61906e05e2822ce6ce3bcc585525ef383b2444a3528",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "amount",
+          "old_type": "double",
+          "new_type": "int64"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

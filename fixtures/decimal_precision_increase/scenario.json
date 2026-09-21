@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "decimal_precision_increase",
+  "title": "Increase decimal precision",
+  "category": "numeric",
+  "description": "A decimal128(9, 2) column becomes decimal128(18, 2). Scale is unchanged. Values include both extremes of the old precision and are unchanged.",
+  "notes": [
+    "The Parquet fixed_len_byte_array width changes with the precision (4 to 8 bytes)."
+  ],
+  "tags": [
+    "change-type",
+    "decimal",
+    "widening",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:82d7691f28b4dad15f955c446e3a3dde7ead4c38b122f5fdce33ccd26632f258",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "price",
+          "type": "decimal128(9, 2)",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:c7fe98a1141c4d570b4c786a20f29140f577dcc658ff87544952742adde45e7c",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "price",
+          "type": "decimal128(18, 2)",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "price",
+          "old_type": "decimal128(9, 2)",
+          "new_type": "decimal128(18, 2)"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

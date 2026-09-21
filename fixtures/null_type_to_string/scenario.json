@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "null_type_to_string",
+  "title": "Null-typed column becomes a string column",
+  "category": "nullability",
+  "description": "In v0 a column has the Arrow null type: it carries no values and no value type, which is what type inference produces from a batch where the column is always null. In v1 the same column is a string column with values.",
+  "notes": [
+    "Parquet has no null type. The writer stores it as an optional INT32 column with the Null logical annotation, so the Parquet physical type changes as well (INT32 -> BYTE_ARRAY)."
+  ],
+  "tags": [
+    "change-type",
+    "null-type",
+    "type-inference",
+    "all-null"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:f4a5b5c1c1abb48a519b69e78cb14b2f17640c37877d9a724085108e7d2108e6",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "comment",
+          "type": "null",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:a73a821a2a5be6d2a0a270b14ebd3099a31cda3ea50df2c8961171d43cbf1e40",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "comment",
+          "old_type": "null",
+          "new_type": "string"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "comment",
+            "relation": "nulls_filled"
+          }
+        ],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

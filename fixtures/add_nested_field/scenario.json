@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "add_nested_field",
+  "title": "Add a field inside a struct",
+  "category": "structural",
+  "description": "A nullable string field postcode is appended to the address struct. Rows include a null struct, a struct whose street is null, and a struct of empty strings; a null struct stays null. Existing nested values are unchanged.",
+  "notes": [],
+  "tags": [
+    "struct",
+    "nested",
+    "add-field",
+    "nested-nulls"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:fe2fd9399e594ce5ae78b4ba68f7dac7d891cef4ef9ab4eafc2742d1b7eb6cfc",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "address",
+          "type": "struct<street: string, city: string>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:ffc0803e00bf07b7da8ccb4f60df1121b9f160cf58c79b6a505b5450a2aeef28",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "address",
+          "type": "struct<street: string, city: string, postcode: string>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "add_field",
+          "path": "address.postcode",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

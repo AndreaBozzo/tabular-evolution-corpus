@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "string_to_dictionary",
+  "title": "string to dictionary-encoded string",
+  "category": "representation",
+  "description": "A plain string column becomes a dictionary<int8, string> column, as written for a pandas categorical. v0 is written without dictionary encoding; v1 with it. Decoded values are unchanged.",
+  "notes": [
+    "The Arrow type change is recorded only in the stored Arrow schema. The Parquet schema is identical; the Parquet difference is in the column chunk encodings (PLAIN vs RLE_DICTIONARY).",
+    "Readers that ignore the stored Arrow schema may decode v1 as plain strings, or as a dictionary with int32 indices. The int8 index width is not representable in the Parquet schema itself."
+  ],
+  "tags": [
+    "change-type",
+    "dictionary",
+    "categorical",
+    "encoding",
+    "arrow-only"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:e5b66495d62b534fd0a382904d46f85c23aaf18721089e242e90676fdb4d9444",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": false
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:6dfdbf0a9de0eac2a01b3d7a88cb06abe18009dfa4d033259c14f39d7bf16d9b",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "dictionary<values=string, indices=int8, ordered=0>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": [
+        {
+          "path": "status",
+          "values": [
+            "active",
+            "inactive",
+            "pending"
+          ]
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "status",
+          "old_type": "string",
+          "new_type": "dictionary<values=string, indices=int8, ordered=0>"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

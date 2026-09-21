@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "list_element_widen",
+  "title": "List elements widen from int32 to int64",
+  "category": "structural",
+  "description": "The element type of a list column changes from int32 to int64. Rows include a null list, an empty list and a list holding a null element, which are three different values. Every element value, including both int32 extremes, is unchanged.",
+  "notes": [
+    "The element field name is not part of the corpus type: this writer stores a list written as list<item: ...> under the Parquet name 'element', and reads it back that way."
+  ],
+  "tags": [
+    "list",
+    "nested",
+    "change-type",
+    "integer",
+    "widening",
+    "nested-nulls"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:b65cc8b84c69eed5f76eb35249b02c418df4cdfdff1d3b284cf3a0a0f0183715",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "scores",
+          "type": "list<int32>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:509adc4dbda4efbb933f47fdb7ad6301b9ccf0990cfc338bc8921803fbb8fb81",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "scores",
+          "type": "list<int64>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "scores[]",
+          "old_type": "int32",
+          "new_type": "int64"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

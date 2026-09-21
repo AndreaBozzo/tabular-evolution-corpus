@@ -1,0 +1,32 @@
+# Citation metadata for the software and data in this repository.
+#
+# There is no associated publication or DOI, so there is deliberately no
+# `preferred-citation`, `doi` or `identifiers` entry. Add one only when it
+# exists. At each release, update `version` and `date-released`.
+cff-version: 1.2.0
+title: tabular-evolution-corpus
+message: >-
+  If you use this corpus, please cite it using the metadata in this file.
+type: dataset
+authors:
+  - family-names: Bozzo
+    given-names: Andrea
+    email: andreabozzo92@gmail.com
+repository-code: https://github.com/AndreaBozzo/tabular-evolution-corpus
+url: https://huggingface.co/datasets/AndreaBozzo/tabular-evolution-corpus
+abstract: >-
+  A small, deterministic corpus of Parquet datasets observed at two or more
+  versions, with machine-checked manifests recording the complete structural
+  difference between versions and row- and value-level facts that hold across
+  each transition. It records objective facts, not compatibility policy, for
+  use as test input by ingestion frameworks, dataframe libraries, query
+  engines, schema registries and data-contract tools.
+keywords:
+  - schema evolution
+  - parquet
+  - apache arrow
+  - test fixtures
+  - data engineering
+license: Apache-2.0
+version: 0.1.0
+date-released: 2026-09-21

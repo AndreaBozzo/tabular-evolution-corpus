@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "empty_then_populated",
+  "title": "Empty typed file followed by a populated file",
+  "category": "edge",
+  "description": "v0 has a fully typed schema and zero rows, the Parquet counterpart of a header-only CSV. v1 has the identical schema and five rows whose values include NaN, both infinities, -0.0, an empty string, whitespace, the literal text NULL and a timestamp before the epoch.",
+  "notes": [
+    "The row and value invariants quantify over the rows of v0, of which there are none, so rows_retained and common_values_preserved are vacuously true.",
+    "v0 carries complete type information in its schema and none in its values, because it has no values."
+  ],
+  "tags": [
+    "empty",
+    "zero-rows",
+    "no-schema-change",
+    "nan",
+    "infinity",
+    "unicode"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 0,
+      "fingerprint": "sha256:6ec61b2ba1c3d3822c5a21ae88514cfe9517ae7c1b24b0a1d7d51444304ae6a6",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "amount",
+          "type": "double",
+          "nullable": true
+        },
+        {
+          "name": "observed_at",
+          "type": "timestamp[us, tz=UTC]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:4eef0003cb203518f0e771ef70c3610043e79d5524c06755bd5fe4d7e65c8eef",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "amount",
+          "type": "double",
+          "nullable": true
+        },
+        {
+          "name": "observed_at",
+          "type": "timestamp[us, tz=UTC]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": false,
+        "row_identity_preserved": false,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

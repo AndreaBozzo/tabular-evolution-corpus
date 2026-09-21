@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "dictionary_reencoded",
+  "title": "Dictionary contents change without any value change",
+  "category": "representation",
+  "description": "Both versions store the same dictionary<int8, string> column with the same decoded values. The stored dictionaries differ: v0 has a different order and an entry that no row uses; v1 has exactly the used values. Schema, rows and values are unchanged, so both versions have the same logical fingerprint.",
+  "notes": [
+    "Tools that compare dictionary indices, category lists or category codes observe a change here. The decoded values do not change.",
+    "The unused dictionary entry survives a PyArrow round trip; other readers may rebuild the dictionary on read and drop it."
+  ],
+  "tags": [
+    "dictionary",
+    "categorical",
+    "encoding",
+    "no-schema-change",
+    "no-value-change"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:6dfdbf0a9de0eac2a01b3d7a88cb06abe18009dfa4d033259c14f39d7bf16d9b",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "dictionary<values=string, indices=int8, ordered=0>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": [
+        {
+          "path": "status",
+          "values": [
+            "pending",
+            "active",
+            "inactive",
+            "archived"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:6dfdbf0a9de0eac2a01b3d7a88cb06abe18009dfa4d033259c14f39d7bf16d9b",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "dictionary<values=string, indices=int8, ordered=0>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": [
+        {
+          "path": "status",
+          "values": [
+            "active",
+            "inactive",
+            "pending"
+          ]
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

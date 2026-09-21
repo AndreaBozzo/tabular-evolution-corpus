@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "remove_nullable_column",
+  "title": "Remove nullable column",
+  "category": "subtractive",
+  "description": "A nullable string column that held nulls, an empty string and values is removed. The remaining columns and all rows are unchanged.",
+  "notes": [],
+  "tags": [
+    "remove-field",
+    "string",
+    "nullable"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:f90aa90d7b9cd185f9473d9a41283a10cab10e82dc9519f22f3c9633de7d28d6",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "middle_name",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:ffbd13144dd0c4b932b54b17badd51ef9e9209a5e577a165cab231d0fed9b6d2",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "remove_field",
+          "path": "middle_name",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": false,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

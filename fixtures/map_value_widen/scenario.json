@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "map_value_widen",
+  "title": "Map values widen from int32 to int64",
+  "category": "structural",
+  "description": "The value type of a map<string, int32> column becomes int64. Rows include a null map, an empty map, an empty-string key and a null value. Keys, values and entry order are unchanged.",
+  "notes": [
+    "Map paths treat a map as a list of key/value entries, which is how Arrow and Parquet store it: the changed path is attributes[].value."
+  ],
+  "tags": [
+    "map",
+    "nested",
+    "change-type",
+    "integer",
+    "widening"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:a4038108aaff3ba58f20879328c2eea4c3fc61ae1bda122ac33457e4f3c58343",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "attributes",
+          "type": "map<string, int32>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:67035ce47c8b7d7b13b868f9578a6c395bec92890ded44aa1d9153c58248cdba",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "attributes",
+          "type": "map<string, int64>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "attributes[].value",
+          "old_type": "int32",
+          "new_type": "int64"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

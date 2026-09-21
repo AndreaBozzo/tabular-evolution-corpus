@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "rows_appended_without_key",
+  "title": "Rows appended to a dataset without a key",
+  "category": "edge",
+  "description": "An append-only log with no identifying column gains two rows. The first four rows, which include two identical rows, are unchanged and in the same order. The schema is unchanged.",
+  "notes": [
+    "row_identity is empty: rows are identified by position, so row i of v0 is row i of v1. The duplicate rows are why no column set can serve as a key."
+  ],
+  "tags": [
+    "keyless",
+    "append",
+    "duplicate-rows",
+    "no-schema-change"
+  ],
+  "row_identity": [],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 4,
+      "fingerprint": "sha256:87f3ef6e927225e236d82b394450de95324e6d095adba8279801412fe80c2961",
+      "schema": [
+        {
+          "name": "level",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:85f671701106ace08b2863716021d6bc28df921f1fbf19b6c3d243b88034a290",
+      "schema": [
+        {
+          "name": "level",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": false,
+        "row_identity_preserved": false,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}
