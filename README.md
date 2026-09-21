@@ -8,10 +8,10 @@ Datasets change shape over time. A column is added, an `int32` becomes an
 back dictionary-encoded, a struct gains a field. Every ingestion framework,
 dataframe library, query engine, lakehouse table format, schema registry and
 data-contract tool has to decide what to do when it sees two versions of the
-same data. Those tools are usually tested with fixtures built for one
-engine's semantics, with a notion like "compatible" already baked in. There is
-no small, neutral set of physical files that states only *what changed* and
-leaves the decision to the system under test.
+same data. Existing test suites tend to encode one engine's semantics or focus
+on physical-format conformance. This corpus provides a small, engine-neutral
+set of physical files that states what changed and leaves compatibility
+decisions to the system under test.
 
 ## What this is
 

@@ -11,10 +11,10 @@ tags:
   - test-fixtures
   - tabular
 configs:
-  - config_name: scenarios
+  - config_name: default
     default: true
     data_files:
-      - split: train
+      - split: scenarios
         path: data/scenarios.parquet
 ---
 
@@ -73,7 +73,7 @@ mutation kind. Every other column is a scalar or a list of scalars.
 ```python
 from datasets import load_dataset
 
-catalog = load_dataset("AndreaBozzo/tabular-evolution-corpus", split="train")
+catalog = load_dataset("AndreaBozzo/tabular-evolution-corpus", split="scenarios")
 ```
 
 To get the fixtures, download the repository files:
