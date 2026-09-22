@@ -1,0 +1,95 @@
+"""Each adapter runs every declared (operation, mode) on every transition.
+
+These tests check that an adapter reports faithfully what its engine did.
+They do not assert what an engine ought to do with a transition: that is the
+observation itself. Engines other than PyArrow come from the `adapters`
+dependency group; their tests skip when the engine is absent.
+"""
+
+from __future__ import annotations
+
+from functools import cache
+from typing import Any
+
+import pytest
+
+from adapters import REGISTRY, load_adapter
+from adapters.base import OPERATIONS
+from adapters.runner import CorpusIdentity, observe
+from conftest import ROOT, SCENARIO_IDS, load
+
+IDENTITY = CorpusIdentity("0.1.0", "0" * 40)
+ENGINE_MODULE = {"pyarrow_dataset": "pyarrow"}
+
+
+@cache
+def records(name: str) -> list[dict[str, Any]]:
+    return observe(ROOT, load_adapter(name), IDENTITY)
+
+
+def adapter_records(name: str) -> list[dict[str, Any]]:
+    pytest.importorskip(ENGINE_MODULE[name])
+    return records(name)
+
+
+def test_every_adapter_names_its_engine_module() -> None:
+    assert set(ENGINE_MODULE) == set(REGISTRY)
+
+
+@pytest.mark.parametrize("name", sorted(REGISTRY))
+def test_every_declared_operation_and_mode_runs_on_every_transition(name: str) -> None:
+    seen = adapter_records(name)
+    adapter = load_adapter(name)
+    assert adapter.name == name
+    assert set(adapter.modes) <= set(OPERATIONS)
+    expected = []
+    for sid in SCENARIO_IDS:
+        for t in load(sid).manifest["transitions"]:
+            for operation in OPERATIONS:
+                for mode in adapter.modes.get(operation, ()):
+                    inputs = [[t["from"]], [t["to"]]] if operation == "read_each_version" else [[t["from"], t["to"]]]
+                    expected += [(sid, t["from"], t["to"], operation, mode, i) for i in inputs]
+    assert [(r["scenario_id"], r["from"], r["to"], r["operation"], r["mode"], r["inputs"]) for r in seen] == expected
+
+
+@pytest.mark.parametrize("name", sorted(REGISTRY))
+def test_error_records_come_from_the_engine(name: str) -> None:
+    """An exception from Python itself (TypeError, KeyError, ...) in `read`
+    would be an adapter bug recorded as an engine answer."""
+    errors = [r["error_class"] for r in adapter_records(name) if r["status"] == "error"]
+    assert [e for e in errors if e.startswith("builtins.")] == []
+
+
+# ---------------------------------------------------------------- PyArrow
+
+
+def declared(scenario_id: str, version_id: str) -> list[dict[str, Any]]:
+    version = load(scenario_id).versions[version_id]
+    return [{"name": f["name"], "type": f["type"], "nullable": f["nullable"]} for f in version["schema"]]
+
+
+def reported(record: dict[str, Any]) -> list[dict[str, Any]]:
+    return [{"name": f["name"], "type": f["type"], "nullable": f["nullable"]} for f in record["result_schema"]]
+
+
+def test_pyarrow_reads_each_version_as_declared() -> None:
+    """PyArrow is also the reference inspector, so a single file must read
+    back exactly as its manifest declares it."""
+    each = [r for r in adapter_records("pyarrow_dataset") if r["operation"] == "read_each_version"]
+    assert each
+    for r in each:
+        (version_id,) = r["inputs"]
+        assert r["status"] == "success", r
+        assert reported(r) == declared(r["scenario_id"], version_id), r["scenario_id"]
+        assert r["row_count"] == load(r["scenario_id"]).versions[version_id]["row_count"]
+
+
+def test_pyarrow_default_dataset_takes_the_first_file_schema() -> None:
+    together = [
+        r
+        for r in adapter_records("pyarrow_dataset")
+        if r["operation"] == "read_versions_together" and r["mode"] == "default" and r["status"] == "success"
+    ]
+    assert together
+    for r in together:
+        assert reported(r) == declared(r["scenario_id"], r["from"]), r["scenario_id"]

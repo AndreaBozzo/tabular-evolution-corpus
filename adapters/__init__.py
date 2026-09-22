@@ -14,7 +14,9 @@ from .base import Adapter
 
 # name -> "module:class", imported on demand so that running one adapter does
 # not require every engine to be installed.
-REGISTRY: dict[str, str] = {}
+REGISTRY: dict[str, str] = {
+    "pyarrow_dataset": ".pyarrow_adapter:PyArrowDatasetAdapter",
+}
 
 
 def load_adapter(name: str) -> Adapter:
