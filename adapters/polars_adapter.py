@@ -9,13 +9,20 @@
 Polars has its own type system. A dtype maps to the corpus vocabulary where
 the equivalent is clear:
 
-- integers, floats, Boolean, Date and Null by name; String is `string` and
-  Binary is `binary` (Polars has one of each; the corpus's `large_` variants
-  differ only in Arrow offset width);
+- integers, floats, Boolean, Date and Null by name;
+- String is `string`, Binary is `binary` and List is `list<...>`. Polars has
+  one type of each, whatever its internal buffers (List uses 64-bit offsets,
+  String uses views); the corpus's `large_` variants differ only in Arrow
+  offset width, so the plain variant stands for all of them;
 - Datetime(unit, zone) is `timestamp[unit]` or `timestamp[unit, tz=zone]`;
 - Decimal(p, s) is `decimal128(p, s)`;
 - List and Struct map member by member; Polars records no nullability, so
   members carry no `not null` and `nullable` is null.
+
+The report (adapters/report.py) compares every combined read with the same
+engine's own single-version reads, so this choice cannot create or hide a
+disagreement between modes; it only decides how Polars lines up with other
+engines when each reads one file.
 
 Anything else (Categorical, Enum, Array, Int128, ...) has no clear
 equivalent; the runner then records the dtype verbatim in `notes`. A Parquet

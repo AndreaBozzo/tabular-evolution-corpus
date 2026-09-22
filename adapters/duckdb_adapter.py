@@ -11,8 +11,10 @@ row is scanned and conversion errors surface, but no value is fetched into
 Python. Result types are what `DESCRIBE` reports. The corpus spelling is
 derived from DuckDB's structured type, not by parsing that string:
 
-- one text type and one blob type: VARCHAR is `string`, BLOB is `binary`
-  (the corpus's `large_` variants differ only in Arrow offset width);
+- one text, one blob and one list type: VARCHAR is `string`, BLOB is
+  `binary`, LIST is `list<...>`. The corpus's `large_` variants differ only
+  in Arrow offset width, which DuckDB does not expose, so the plain variant
+  stands for all of them;
 - DECIMAL(p, s) is `decimal128(p, s)`;
 - TIMESTAMP[_S|_MS|_NS] are naive timestamps of that unit;
 - STRUCT, LIST and MAP map member by member; DuckDB records no nullability,
