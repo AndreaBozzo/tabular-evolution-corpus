@@ -15,6 +15,7 @@ from .base import Adapter
 # name -> "module:class", imported on demand so that running one adapter does
 # not require every engine to be installed.
 REGISTRY: dict[str, str] = {
+    "duckdb": ".duckdb_adapter:DuckDBAdapter",
     "pyarrow_dataset": ".pyarrow_adapter:PyArrowDatasetAdapter",
 }
 

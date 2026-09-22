@@ -19,7 +19,7 @@ from adapters.runner import CorpusIdentity, observe
 from conftest import ROOT, SCENARIO_IDS, load
 
 IDENTITY = CorpusIdentity("0.1.0", "0" * 40)
-ENGINE_MODULE = {"pyarrow_dataset": "pyarrow"}
+ENGINE_MODULE = {"duckdb": "duckdb", "pyarrow_dataset": "pyarrow"}
 
 
 @cache
@@ -93,3 +93,66 @@ def test_pyarrow_default_dataset_takes_the_first_file_schema() -> None:
     assert together
     for r in together:
         assert reported(r) == declared(r["scenario_id"], r["from"]), r["scenario_id"]
+
+
+# ---------------------------------------------------------------- DuckDB
+
+
+@pytest.mark.parametrize(
+    ("sql_type", "expected"),
+    [
+        ("BIGINT", "int64"),
+        ("UTINYINT", "uint8"),
+        ("VARCHAR", "string"),
+        ("BLOB", "binary"),
+        ("DECIMAL(11,4)", "decimal128(11, 4)"),
+        ("TIMESTAMP", "timestamp[us]"),
+        ("TIMESTAMP_NS", "timestamp[ns]"),
+        ("INTEGER[]", "list<int32>"),
+        ("STRUCT(sku VARCHAR, qty INTEGER)[]", "list<struct<sku: string, qty: int32>>"),
+        ("MAP(VARCHAR, BIGINT)", "map<string, int64>"),
+        ("TIMESTAMPTZ", None),
+        ("STRUCT(a INTEGER, b TIMESTAMPTZ)", None),
+        ("HUGEINT", None),
+        ("INTEGER[3]", None),
+        ('"NULL"', None),
+    ],
+)
+def test_duckdb_type_mapping(sql_type: str, expected: str | None) -> None:
+    duckdb = pytest.importorskip("duckdb")
+    from adapters.duckdb_adapter import corpus_type
+
+    assert corpus_type(duckdb.sqltype(sql_type)) == expected
+
+
+def test_duckdb_reports_names_and_row_counts_of_each_version() -> None:
+    each = [r for r in adapter_records("duckdb") if r["operation"] == "read_each_version"]
+    assert each
+    for r in each:
+        (version_id,) = r["inputs"]
+        assert r["status"] == "success", r
+        assert [f["name"] for f in r["result_schema"]] == [f["name"] for f in declared(r["scenario_id"], version_id)]
+        assert {f["nullable"] for f in r["result_schema"]} == {None}
+        assert r["row_count"] == load(r["scenario_id"]).versions[version_id]["row_count"]
+
+
+def names(fields: list[dict[str, Any]]) -> list[str]:
+    return [f["name"] for f in fields]
+
+
+@pytest.mark.parametrize(("name", "mode"), [("duckdb", "union_by_name"), ("pyarrow_dataset", "unified_permissive")])
+def test_by_name_modes_return_the_union_of_columns(name: str, mode: str) -> None:
+    """Defines the mode, not the engine's merit: matching by name keeps every
+    column of either version."""
+    merged = [r for r in adapter_records(name) if r["mode"] == mode and r["status"] == "success"]
+    assert merged
+    for r in merged:
+        old, new = names(declared(r["scenario_id"], r["from"])), names(declared(r["scenario_id"], r["to"]))
+        assert sorted(names(r["result_schema"])) == sorted(set(old) | set(new)), r["scenario_id"]
+
+
+def test_duckdb_positional_takes_the_first_file_columns() -> None:
+    positional = [r for r in adapter_records("duckdb") if r["mode"] == "positional" and r["status"] == "success"]
+    assert positional
+    for r in positional:
+        assert names(r["result_schema"]) == names(declared(r["scenario_id"], r["from"])), r["scenario_id"]
