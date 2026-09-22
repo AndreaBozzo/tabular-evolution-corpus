@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "timestamp_ns_to_us",
+  "title": "Timestamp unit changes from nanoseconds to microseconds",
+  "category": "temporal",
+  "description": "A naive timestamp column changes unit from nanoseconds to microseconds. Every v0 value is a whole number of microseconds, so every instant is unchanged. Values include both ends of the range timestamp[ns] can hold, one microsecond before the epoch, and a leap day.",
+  "notes": [
+    "At the Parquet level the Timestamp logical type's unit changes from NANOS to MICROS and every stored INT64 is divided by 1000.",
+    "Timestamps compare by instant, independent of unit, so no value changes. The v0 extremes sit at the edges of the int64 nanosecond range; the microsecond range is 1000 times wider."
+  ],
+  "tags": [
+    "change-type",
+    "timestamp",
+    "unit",
+    "nanoseconds",
+    "range-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:fb6249b26547f63e125784d224fe1f57cd43eb540150f0a60fa28f39d7ba3cd9",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_time",
+          "type": "timestamp[ns]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:78a16095bb6fb126b9cd3f13f993c4d189659a7b963c08d708ad3586ea9b313a",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_time",
+          "type": "timestamp[us]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "event_time",
+          "old_type": "timestamp[ns]",
+          "new_type": "timestamp[us]"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

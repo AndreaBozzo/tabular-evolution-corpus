@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "int32_to_decimal",
+  "title": "int32 to decimal with every value unchanged",
+  "category": "numeric",
+  "description": "An int32 column becomes decimal128(12, 2), the smallest precision at scale 2 that holds every int32. Values, including both int32 extremes, are numerically unchanged (7 and 7.00 are the same number).",
+  "notes": [
+    "The type moves across numeric families, from a binary integer to a scaled decimal, so it is not a width change within one family like int32 to int64.",
+    "At the Parquet level the physical type changes from INT32 to FIXED_LEN_BYTE_ARRAY."
+  ],
+  "tags": [
+    "change-type",
+    "integer",
+    "decimal",
+    "widening",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:f96a0bbd72e6740792655d8e4c12117ebf1eed30a4c1d7509713de59322fb06f",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "int32",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:d4a15d122b73125afebe1ab2d80efe7df252a9bb07450c17a255d2826c46bca8",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "decimal128(12, 2)",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "quantity",
+          "old_type": "int32",
+          "new_type": "decimal128(12, 2)"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

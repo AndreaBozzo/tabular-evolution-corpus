@@ -36,6 +36,7 @@ def test_duckdb() -> None:
         "decimal_scale_increase",
         "float64_to_int64_fractional",
         "float64_to_int64_integral",
+        "int32_to_decimal",
         "int64_to_float64",
         "widen_int32_to_int64",
     ]

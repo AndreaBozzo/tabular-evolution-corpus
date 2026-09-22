@@ -234,14 +234,14 @@ generation, the test suite, and `verify_release.py`.
 
 | category | scenarios |
 | --- | --- |
-| additive | add nullable string / int64 column; add all-null column then backfill (3 versions) |
+| additive | add nullable string / int64 column; add all-null column then backfill (3 versions); add non-nullable column |
 | subtractive | remove nullable column; remove required column |
-| numeric | int32->int64; int64->float64 (lossy above 2^53); float64->int64 integral / fractional; decimal precision increase; decimal scale increase at fixed precision |
+| numeric | int32->int64; int64->float64 (lossy above 2^53); float64->int64 integral / fractional; decimal precision increase; decimal scale increase at fixed precision; int32->decimal |
 | nullability | nulls backfilled under a nullable schema; required->nullable; nullable->required; column becomes all-null; `null`-typed column becomes string |
 | representation | string->large_string; string->dictionary; dictionary re-encoded without value change; string->binary |
 | structural | reorder; rename with field ids; add / remove nested field; nested float32->float64; list element int32->int64; add field inside list<struct>; map value int32->int64 |
-| temporal | naive timestamp -> UTC timestamp |
-| edge | empty typed file -> populated file; rows appended to a keyless dataset |
+| temporal | naive timestamp -> UTC timestamp; nanoseconds -> microseconds |
+| edge | empty typed file -> populated file; rows appended to a keyless dataset; rows deleted from a keyed dataset |
 
 ## 7. Adapters (not in the core package)
 

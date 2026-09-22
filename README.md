@@ -15,7 +15,7 @@ decisions to the system under test.
 
 ## What this is
 
-A deliberately small corpus of **31 scenarios**. Each scenario is one logical
+A deliberately small corpus of **35 scenarios**. Each scenario is one logical
 dataset at two or more points in time:
 
 - **versions**: tiny Parquet files (0 to 8 rows) written by one pinned writer;
@@ -99,12 +99,14 @@ v1 value is exactly `float(v0)`.
 | `add_all_null_column` | additive | Add a typed all-null column, then backfill it | add_field | nulls_filled | 6/6/6 |
 | `add_nullable_int64_column` | additive | Add nullable int64 column | add_field | - | 6/6 |
 | `add_nullable_string_column` | additive | Add nullable string column | add_field | - | 6/6 |
+| `add_required_column` | additive | Add non-nullable populated column | add_field | - | 6/6 |
 | `remove_nullable_column` | subtractive | Remove nullable column | remove_field | - | 6/6 |
 | `remove_required_column` | subtractive | Remove non-nullable populated column | remove_field | - | 6/6 |
 | `decimal_precision_increase` | numeric | Increase decimal precision | change_type | - | 6/6 |
 | `decimal_scale_increase` | numeric | Increase decimal scale at fixed precision | change_type | - | 6/6 |
 | `float64_to_int64_fractional` | numeric | float64 to int64 with fractional values | change_type | truncated_toward_zero | 7/7 |
 | `float64_to_int64_integral` | numeric | float64 to int64, integral values only | change_type | - | 7/7 |
+| `int32_to_decimal` | numeric | int32 to decimal with every value unchanged | change_type | - | 6/6 |
 | `int64_to_float64` | numeric | int64 to float64 with values beyond 2^53 | change_type | nearest_float64 | 7/7 |
 | `widen_int32_to_int64` | numeric | Widen int32 to int64 | change_type | - | 6/6 |
 | `column_becomes_all_null` | nullability | Populated column becomes entirely null | (none) | nulled | 6/6 |
@@ -125,12 +127,14 @@ v1 value is exactly `float(v0)`.
 | `add_field_in_list_of_struct` | structural | Add a field to the structs inside a list | add_field | - | 5/5 |
 | `map_value_widen` | structural | Map values widen from int32 to int64 | change_type | - | 5/5 |
 | `timestamp_naive_to_utc` | temporal | Naive timestamp becomes UTC timestamp | change_type | interpreted_as_utc | 5/5 |
+| `timestamp_ns_to_us` | temporal | Timestamp unit changes from nanoseconds to microseconds | change_type | - | 6/6 |
 | `empty_then_populated` | edge | Empty typed file followed by a populated file | (none) | - | 0/5 |
 | `rows_appended_without_key` | edge | Rows appended to a dataset without a key | (none) | - | 4/6 |
+| `rows_deleted` | edge | Rows deleted from a keyed dataset | (none) | - | 6/4 |
 
-Five scenarios have **no schema change at all** (`column_becomes_all_null`,
+Six scenarios have **no schema change at all** (`column_becomes_all_null`,
 `nullable_column_backfilled`, `dictionary_reencoded`, `empty_then_populated`,
-`rows_appended_without_key`).
+`rows_appended_without_key`, `rows_deleted`).
 In these, values or their encoding change while the stored schema does not,
 which matters to any system that infers types, nullability or categories from
 the data it sees.
@@ -409,7 +413,7 @@ Three things are versioned, independently of each other:
 
 | what | where | changes when |
 | --- | --- | --- |
-| **Corpus release** (`v0.1.0`) | git tag, GitHub release, Hugging Face tag | any fixture, manifest or catalog change. A release names fixed bytes: its tag is never moved or deleted, and a changed corpus is a new release. |
+| **Corpus release** (`v0.2.0`) | git tag, GitHub release, Hugging Face tag | any fixture, manifest or catalog change. A release names fixed bytes: its tag is never moved or deleted, and a changed corpus is a new release. |
 | **Manifest format** (`schema_version: "1.0"`) | every `scenario.json` | only the manifest format changes: a new field, mutation kind, relation or invariant, or a changed type spelling. A release that only adds scenarios keeps it. |
 | **Observation runs** | outside `fixtures/` | never folded back into the corpus. A run is keyed by corpus version, corpus revision and adapter version. |
 
@@ -432,16 +436,15 @@ Non-goals:
 - file formats other than Parquet in Phase 0;
 - reproducing or vendoring the Arrow or Parquet test corpora.
 
-## Deliberately excluded (Phase 0)
+## Deliberately excluded
 
 | candidate | reason |
 | --- | --- |
 | Rename **without** field ids | Physically identical to remove + add; recording it as a rename would be a claim the files cannot support. A future scenario can model it as remove + add with a value-level link. |
 | Dictionary **index width** change (int8 -> int32) | Exists only in the stored Arrow schema; a reader that ignores it sees an identical Parquet column. Recording it would mostly test one writer's metadata round trip. |
-| Row deletion | Supported by the model (`rows_retained: false`) and by the validator (tested by tampering), but omitted to keep every Phase 0 scenario focused on one structural change. |
 | `string_view` / `binary_view` | Written to Parquet as plain strings; the view type survives only through the stored Arrow schema, so it would duplicate `string_to_large_string` at the Parquet level. |
 | float64 NaN / infinity -> int64 | No integer value exists; any v1 content would encode a policy (null, error, sentinel). |
-| Timestamp unit changes, dates beyond the nanosecond range | Good candidates; kept out so that the temporal category has one clean scenario first. |
+| Other timestamp units, dates beyond the nanosecond range | `timestamp_ns_to_us` covers one unit change, inside the nanosecond range. Millisecond and second units, and dates only a coarser unit can hold, are good candidates left for later. |
 | Map key changes, duplicate map keys | A map is modelled as a list of key/value entries, so these are representable; they are left for a scenario of their own rather than mixed into `map_value_widen`. |
 
 ## Contributing a scenario
@@ -478,18 +481,20 @@ is violated.
 
 ## Roadmap
 
-- **Phase 0 (this):** 31 scenarios, formal manifest schema, validator,
-  catalog, deterministic regeneration, draft dataset card.
+- **Phase 0 (corpus 0.1.0):** 31 scenarios, formal manifest schema,
+  validator, catalog, deterministic regeneration, dataset card.
+- **Corpus 0.2.0:** four more scenarios: a non-nullable column added, int32 to
+  decimal, a nanosecond to microsecond timestamp, and deleted rows (the first
+  fixture with `rows_retained: false`).
 - **Phase 1: adapters, outside the core package.** A runner, a result
   record schema and three adapters (PyArrow Dataset, DuckDB, Polars), with
   their observations in the README (see [Observations](#observations)).
 - **Phase 2: table formats and contract tools.** Delta Lake and Iceberg
   (append under each schema-evolution mode), Spark (`mergeSchema`), dlt, Data
   Contract CLI, Soda, Great Expectations, profilers such as dataprof.
-- **Corpus growth:** row deletion and reordering, map key changes, renames
-  without field ids, timestamp units, fixtures from a second Parquet writer
-  (see "One writer"), CSV/JSON renderings of the same scenarios, a published
-  results table per adapter.
+- **Corpus growth:** row reordering, map key changes, renames without field
+  ids, millisecond and second timestamp units, fixtures from a second Parquet
+  writer (see "One writer"), CSV/JSON renderings of the same scenarios.
 
 ## License and citation
 

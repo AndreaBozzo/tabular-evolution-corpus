@@ -58,11 +58,7 @@ def test_boolean_invariants_are_declared_both_ways() -> None:
         for t in load(scenario_id).manifest["transitions"]:
             for name in BOOLEAN_INVARIANTS:
                 seen[name].add(t["invariants"][name])
-    one_sided = {name for name, values in seen.items() if values != {True, False}}
-    # rows_retained is false only when rows are deleted. No Phase 0 scenario
-    # deletes rows (README, "Deliberately excluded"); the tamper test below
-    # still exercises the false direction of the check.
-    assert one_sided == {"rows_retained"}
+    assert {name for name, values in seen.items() if values != {True, False}} == set()
 
 
 # ------------------------------------------------------------ the validator is not a rubber stamp
@@ -185,7 +181,7 @@ def test_tampered_value_is_detected(tmp_path: Path) -> None:
 
 
 def test_deleted_row_is_detected(tmp_path: Path) -> None:
-    """The false direction of rows_retained, which no Phase 0 scenario declares."""
+    """An undeclared deletion is caught (rows_deleted declares one)."""
     directory = _copy_scenario("reorder_columns", tmp_path)
     table = LoadedScenario.load(directory).table("v1")
     write_parquet(table.slice(1), directory / "v1.parquet")

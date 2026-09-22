@@ -175,6 +175,31 @@ def decimal_scale_increase() -> Scenario:
     )
 
 
+def int32_to_decimal() -> Scenario:
+    return _numeric(
+        "int32_to_decimal",
+        "int32 to decimal with every value unchanged",
+        (
+            "An int32 column becomes decimal128(12, 2), the smallest precision at scale 2 that holds every "
+            "int32. Values, including both int32 extremes, are numerically unchanged (7 and 7.00 are the same "
+            "number)."
+        ),
+        ["change-type", "integer", "decimal", "widening", "numeric-extremes"],
+        "quantity",
+        (pa.int32(), "int32", [-2147483648, -1, 0, 7, 2147483647, None]),
+        (
+            pa.decimal128(12, 2),
+            "decimal128(12, 2)",
+            [D("-2147483648.00"), D("-1.00"), D("0.00"), D("7.00"), D("2147483647.00"), None],
+        ),
+        notes=[
+            "The type moves across numeric families, from a binary integer to a scaled decimal, so it is not "
+            "a width change within one family like int32 to int64.",
+            "At the Parquet level the physical type changes from INT32 to FIXED_LEN_BYTE_ARRAY.",
+        ],
+    )
+
+
 SCENARIOS = [
     widen_int32_to_int64,
     int64_to_float64,
@@ -182,4 +207,5 @@ SCENARIOS = [
     float64_to_int64_fractional,
     decimal_precision_increase,
     decimal_scale_increase,
+    int32_to_decimal,
 ]

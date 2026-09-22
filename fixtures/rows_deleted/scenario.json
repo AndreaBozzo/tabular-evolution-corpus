@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "rows_deleted",
+  "title": "Rows deleted from a keyed dataset",
+  "category": "edge",
+  "description": "Two of six rows, ids 2 and 5, are absent from v1. The four remaining rows keep their values and their relative order. The schema is unchanged.",
+  "notes": [
+    "rows_retained is false. common_values_preserved quantifies over the rows present in both versions, and those rows are unchanged.",
+    "v1 has no rows for ids 2 and 5, rather than rows with nulls or empty values. The deleted rows held an empty status (id 2) and a null amount (id 5)."
+  ],
+  "tags": [
+    "delete",
+    "keyed",
+    "no-schema-change"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:190cc5f8270f318300bfce01b7d28a81df23829c481f97057fdfe866d050e976",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 4,
+      "fingerprint": "sha256:9d4eb19479eb6a32bf96d5800da5cf576a00a58dfdbeedb920a7ed9bf8106336",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": false,
+        "row_identity_preserved": false,
+        "rows_retained": false,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

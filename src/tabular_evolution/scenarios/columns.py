@@ -71,6 +71,38 @@ def add_nullable_int64_column() -> Scenario:
     )
 
 
+def add_required_column() -> Scenario:
+    country = field("country_code", pa.string(), nullable=False)
+    return Scenario(
+        scenario_id="add_required_column",
+        title="Add non-nullable populated column",
+        category="additive",
+        description=(
+            "A non-nullable string column is appended, with a value in every v1 row. v0 has no such column, "
+            "so the v0 rows have no value for it. Existing columns and rows are unchanged."
+        ),
+        notes=[
+            "Read by column name together with v0, the v0 rows have no value for a column that v1 declares "
+            "non-nullable. See remove_required_column for the opposite direction.",
+        ],
+        tags=["add-field", "string", "non-nullable"],
+        row_identity=["id"],
+        versions=[
+            Version("v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]),
+            Version(
+                "v1",
+                lambda: table([ID, NAME, country], [ids(6), NAMES, ["GB", "US", "FI", "US", "NL", "US"]]),
+                [col("id", "int64", False), col("name", "string"), col("country_code", "string", False)],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0", "v1", [add_field("country_code", "string", False)], same_rows(parquet_schema_preserved=False)
+            )
+        ],
+    )
+
+
 def add_all_null_column() -> Scenario:
     referrer = field("referrer", pa.string())
     schema_v1 = [col("id", "int64", False), col("name", "string"), col("referrer", "string")]
@@ -180,6 +212,7 @@ SCENARIOS = [
     add_nullable_string_column,
     add_nullable_int64_column,
     add_all_null_column,
+    add_required_column,
     remove_nullable_column,
     remove_required_column,
 ]

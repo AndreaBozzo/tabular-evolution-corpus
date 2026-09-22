@@ -37,7 +37,7 @@ decide.
 ## What the viewer shows
 
 The viewer shows the **catalog**, `data/scenarios.parquet`, with one row per
-scenario (31 rows). The catalog is an index. The versioned fixture files it
+scenario (35 rows). The catalog is an index. The versioned fixture files it
 points to live in the same repository under `fixtures/<scenario_id>/`
 (`v0.parquet`, `v1.parquet`, ..., `scenario.json`).
 
@@ -86,7 +86,7 @@ root = snapshot_download("AndreaBozzo/tabular-evolution-corpus", repo_type="data
 ```
 
 Every corpus release is a tag, both here and on GitHub. Pass
-`revision="v0.1.0"` to either call to get exactly that release. A released tag
+`revision="v0.2.0"` to either call to get exactly that release. A released tag
 is never moved, and a changed corpus gets a new release.
 
 ```sql
@@ -113,7 +113,8 @@ All data is synthetic, written by the generator in the source repository with
 a pinned PyArrow Parquet writer (uncompressed, format 2.6, one row group).
 Values are chosen to expose boundaries: NaN, infinities, `-0.0`, 2^53 + 1,
 int and decimal extremes, composed vs decomposed Unicode, empty strings,
-nested nulls, pre-epoch timestamps. Regeneration is logically reproducible,
+nested nulls, pre-epoch timestamps, timestamps at both ends of the
+nanosecond range. Regeneration is logically reproducible,
 and byte-reproducible with the same PyArrow version.
 
 ## Intended use and limitations
@@ -122,7 +123,7 @@ Intended as test input for ingestion frameworks, dataframe libraries, query
 engines, lakehouse tooling, schema registries, contract validators and
 profilers. It is not training data, not a performance benchmark, and not a
 conformance suite for Arrow or Parquet (see apache/parquet-testing and the
-Arrow integration tests for those). Phase 0 covers Parquet only and 31
+Arrow integration tests for those). Corpus 0.2.0 covers Parquet only and 35
 scenarios. Nested evolution covers structs, lists and maps; datasets are
 keyed or identified by row position.
 

@@ -1,6 +1,6 @@
 [project]
 name = "tabular-evolution-corpus"
-version = "0.1.0"
+version = "0.2.0"
 description = "Small, deterministic Parquet fixtures of tabular datasets changing over time, with machine-checked manifests."
 readme = "README.md"
 license = "Apache-2.0"

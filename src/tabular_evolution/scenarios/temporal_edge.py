@@ -61,6 +61,62 @@ def timestamp_naive_to_utc() -> Scenario:
     )
 
 
+# Stored microseconds; the nanosecond version stores each times 1000. The
+# extremes are the int64 nanosecond range rounded inward to whole microseconds.
+UNIT_TIMES = [
+    -1,  # 1969-12-31T23:59:59.999999
+    0,
+    1709208000 * US_PER_S,  # 2024-02-29T12:00:00
+    9223372036854775,  # 2262-04-11T23:47:16.854775, the last whole microsecond timestamp[ns] holds
+    -9223372036854775,  # 1677-09-21T00:12:43.145225, the first
+    None,
+]
+
+
+def timestamp_ns_to_us() -> Scenario:
+    return Scenario(
+        scenario_id="timestamp_ns_to_us",
+        title="Timestamp unit changes from nanoseconds to microseconds",
+        category="temporal",
+        description=(
+            "A naive timestamp column changes unit from nanoseconds to microseconds. Every v0 value is a whole "
+            "number of microseconds, so every instant is unchanged. Values include both ends of the range "
+            "timestamp[ns] can hold, one microsecond before the epoch, and a leap day."
+        ),
+        notes=[
+            "At the Parquet level the Timestamp logical type's unit changes from NANOS to MICROS and every "
+            "stored INT64 is divided by 1000.",
+            "Timestamps compare by instant, independent of unit, so no value changes. The v0 extremes sit at "
+            "the edges of the int64 nanosecond range; the microsecond range is 1000 times wider.",
+        ],
+        tags=["change-type", "timestamp", "unit", "nanoseconds", "range-extremes"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table(
+                    [ID, field("event_time", pa.timestamp("ns"))],
+                    [ids(6), [None if t is None else t * 1000 for t in UNIT_TIMES]],
+                ),
+                [col("id", "int64", False), col("event_time", "timestamp[ns]")],
+            ),
+            Version(
+                "v1",
+                lambda: table([ID, field("event_time", pa.timestamp("us"))], [ids(6), UNIT_TIMES]),
+                [col("id", "int64", False), col("event_time", "timestamp[us]")],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [change_type("event_time", "timestamp[ns]", "timestamp[us]")],
+                same_rows(parquet_schema_preserved=False),
+            )
+        ],
+    )
+
+
 def empty_then_populated() -> Scenario:
     fields = [
         ID,
@@ -124,4 +180,56 @@ def empty_then_populated() -> Scenario:
     )
 
 
-SCENARIOS = [timestamp_naive_to_utc, empty_then_populated]
+def rows_deleted() -> Scenario:
+    fields = [ID, field("status", pa.string()), field("amount", pa.int64())]
+    decl = [col("id", "int64", False), col("status", "string"), col("amount", "int64")]
+    return Scenario(
+        scenario_id="rows_deleted",
+        title="Rows deleted from a keyed dataset",
+        category="edge",
+        description=(
+            "Two of six rows, ids 2 and 5, are absent from v1. The four remaining rows keep their values and "
+            "their relative order. The schema is unchanged."
+        ),
+        notes=[
+            "rows_retained is false. common_values_preserved quantifies over the rows present in both "
+            "versions, and those rows are unchanged.",
+            "v1 has no rows for ids 2 and 5, rather than rows with nulls or empty values. The deleted rows "
+            "held an empty status (id 2) and a null amount (id 5).",
+        ],
+        tags=["delete", "keyed", "no-schema-change"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table(
+                    fields,
+                    [ids(6), ["open", "", "closed", "open", "closed", "open"], [10, 20, 30, 40, None, 0]],
+                ),
+                decl,
+            ),
+            Version(
+                "v1",
+                lambda: table(fields, [[1, 3, 4, 6], ["open", "closed", "open", "open"], [10, 30, 40, 0]]),
+                decl,
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [],
+                Invariants(
+                    row_count_preserved=False,
+                    row_identity_preserved=False,
+                    rows_retained=False,
+                    paths_retained=True,
+                    common_values_preserved=True,
+                    parquet_schema_preserved=True,
+                ),
+            )
+        ],
+    )
+
+
+SCENARIOS = [timestamp_naive_to_utc, timestamp_ns_to_us, empty_then_populated, rows_deleted]
