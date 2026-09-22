@@ -9,7 +9,7 @@ dependency group; their tests skip when the engine is absent.
 from __future__ import annotations
 
 from functools import cache
-from typing import Any
+from typing import Any, Callable
 
 import pytest
 
@@ -19,7 +19,7 @@ from adapters.runner import CorpusIdentity, observe
 from conftest import ROOT, SCENARIO_IDS, load
 
 IDENTITY = CorpusIdentity("0.1.0", "0" * 40)
-ENGINE_MODULE = {"duckdb": "duckdb", "pyarrow_dataset": "pyarrow"}
+ENGINE_MODULE = {"duckdb": "duckdb", "polars": "polars", "pyarrow_dataset": "pyarrow"}
 
 
 @cache
@@ -125,8 +125,9 @@ def test_duckdb_type_mapping(sql_type: str, expected: str | None) -> None:
     assert corpus_type(duckdb.sqltype(sql_type)) == expected
 
 
-def test_duckdb_reports_names_and_row_counts_of_each_version() -> None:
-    each = [r for r in adapter_records("duckdb") if r["operation"] == "read_each_version"]
+@pytest.mark.parametrize("name", ["duckdb", "polars"])
+def test_engines_without_nullability_report_names_and_row_counts_of_each_version(name: str) -> None:
+    each = [r for r in adapter_records(name) if r["operation"] == "read_each_version"]
     assert each
     for r in each:
         (version_id,) = r["inputs"]
@@ -140,7 +141,10 @@ def names(fields: list[dict[str, Any]]) -> list[str]:
     return [f["name"] for f in fields]
 
 
-@pytest.mark.parametrize(("name", "mode"), [("duckdb", "union_by_name"), ("pyarrow_dataset", "unified_permissive")])
+@pytest.mark.parametrize(
+    ("name", "mode"),
+    [("duckdb", "union_by_name"), ("polars", "diagonal_relaxed"), ("pyarrow_dataset", "unified_permissive")],
+)
 def test_by_name_modes_return_the_union_of_columns(name: str, mode: str) -> None:
     """Defines the mode, not the engine's merit: matching by name keeps every
     column of either version."""
@@ -151,8 +155,49 @@ def test_by_name_modes_return_the_union_of_columns(name: str, mode: str) -> None
         assert sorted(names(r["result_schema"])) == sorted(set(old) | set(new)), r["scenario_id"]
 
 
-def test_duckdb_positional_takes_the_first_file_columns() -> None:
-    positional = [r for r in adapter_records("duckdb") if r["mode"] == "positional" and r["status"] == "success"]
-    assert positional
-    for r in positional:
+@pytest.mark.parametrize(("name", "mode"), [("duckdb", "positional"), ("polars", "default")])
+def test_first_file_modes_return_the_first_file_columns(name: str, mode: str) -> None:
+    together = [
+        r
+        for r in adapter_records(name)
+        if r["operation"] == "read_versions_together" and r["mode"] == mode and r["status"] == "success"
+    ]
+    assert together
+    for r in together:
         assert names(r["result_schema"]) == names(declared(r["scenario_id"], r["from"])), r["scenario_id"]
+
+
+# ---------------------------------------------------------------- Polars
+
+
+POLARS_TYPES: list[tuple[str, Callable[[Any], Any], str | None]] = [
+    ("Int64", lambda pl: pl.Int64, "int64"),
+    ("UInt16", lambda pl: pl.UInt16, "uint16"),
+    ("Float16", lambda pl: pl.Float16, "halffloat"),
+    ("Float32", lambda pl: pl.Float32, "float"),
+    ("String", lambda pl: pl.String, "string"),
+    ("Binary", lambda pl: pl.Binary, "binary"),
+    ("Null", lambda pl: pl.Null, "null"),
+    ("Datetime-us", lambda pl: pl.Datetime("us"), "timestamp[us]"),
+    ("Datetime-ns-UTC", lambda pl: pl.Datetime("ns", "UTC"), "timestamp[ns, tz=UTC]"),
+    ("Decimal", lambda pl: pl.Decimal(9, 4), "decimal128(9, 4)"),
+    ("List", lambda pl: pl.List(pl.Int32), "list<int32>"),
+    ("Struct", lambda pl: pl.Struct({"key": pl.String, "value": pl.Int64}), "struct<key: string, value: int64>"),
+    (
+        "List-of-Struct",
+        lambda pl: pl.List(pl.Struct({"sku": pl.String, "qty": pl.Int32})),
+        "list<struct<sku: string, qty: int32>>",
+    ),
+    ("Categorical", lambda pl: pl.Categorical(), None),
+    ("Array", lambda pl: pl.Array(pl.Int32, 3), None),
+    ("Int128", lambda pl: pl.Int128, None),
+    ("Struct-with-Categorical", lambda pl: pl.Struct({"a": pl.Int32, "b": pl.Categorical()}), None),
+]
+
+
+@pytest.mark.parametrize(("dtype", "expected"), [t[1:] for t in POLARS_TYPES], ids=[t[0] for t in POLARS_TYPES])
+def test_polars_type_mapping(dtype: Callable[[Any], Any], expected: str | None) -> None:
+    pl = pytest.importorskip("polars")
+    from adapters.polars_adapter import corpus_type
+
+    assert corpus_type(dtype(pl)) == expected
