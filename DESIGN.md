@@ -251,9 +251,9 @@ mode and emits one result record per engine call, validated against
 the manifest):
 
 ```json
-{"schema_version": "1.0", "corpus_version": "0.1.0", "corpus_revision": "<40-hex commit>",
+{"schema_version": "1.1", "corpus_version": "0.2.0", "corpus_revision": "<40-hex commit>",
  "scenario_id": "timestamp_naive_to_utc", "from": "v0", "to": "v1", "inputs": ["v0", "v1"],
- "adapter": "duckdb", "adapter_version": "1.5.5",
+ "adapter": "duckdb", "adapter_version": "1.5.5", "platform": "linux-x86_64",
  "operation": "read_versions_together", "mode": "union_by_name",
  "status": "success",
  "result_schema": [{"name": "event_time", "type": null,
@@ -264,6 +264,10 @@ the manifest):
 - **Corpus identity.** `corpus_version` names a release; `corpus_revision`
   is the commit the fixtures were read from, which proves which bytes
   produced the result.
+- **Platform.** `platform` is the operating system and CPU architecture of
+  the run (format 1.1). The same engine version can answer differently on
+  another architecture: PyArrow 25.0.1 raises on one `int64_to_float64` read
+  on x86_64 and not on macOS arm64.
 - **Operation and mode.** `operation` is a closed set. `mode` names the
   engine's variant (`union_by_name`, `positional`, `unified_permissive`,
   `diagonal_relaxed`, or `default`). A variant is never encoded in `notes` or

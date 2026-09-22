@@ -12,7 +12,7 @@ import pytest
 
 from adapters import REGISTRY, load_adapter
 from adapters.report import _relative, latest_results, main
-from adapters.runner import CorpusIdentity, check_record, observe, read_results, result_validator
+from adapters.runner import CorpusIdentity, check_record, current_platform, observe, read_results, result_validator
 from conftest import ROOT
 from tabular_evolution import __version__
 from test_adapters import ENGINE_MODULE
@@ -31,7 +31,8 @@ def test_committed_records_are_valid_and_from_one_run(path: Path) -> None:
     records = read_results(path)
     validator = result_validator(ROOT)
     assert records and all(check_record(r, validator) == [] for r in records)
-    assert len({(r["corpus_version"], r["corpus_revision"], r["adapter"], r["adapter_version"]) for r in records}) == 1
+    run = {(r["corpus_version"], r["corpus_revision"], r["adapter"], r["adapter_version"], r["platform"]) for r in records}
+    assert len(run) == 1
     assert records[0]["corpus_version"] == path.parent.name
     assert records[0]["adapter"] == path.stem
 
@@ -47,8 +48,22 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> No
     adapter = load_adapter(path.stem)
     if adapter.version != first["adapter_version"]:
         pytest.skip(f"recorded with {first['adapter_version']}, installed {adapter.version}")
+    # Compared across operating systems but not across CPU architectures:
+    # Linux and Windows x86_64 reproduce each other's records exactly, while
+    # on macOS arm64 PyArrow reads int64_to_float64 without the error it
+    # raises on x86_64 (see README, Observations).
+    here = current_platform()
+    if here.split("-")[1] != first["platform"].split("-")[1]:
+        pytest.skip(f"recorded on {first['platform']}, running on {here}")
     identity = CorpusIdentity(first["corpus_version"], first["corpus_revision"])
-    assert observe(ROOT, adapter, identity) == records
+    fresh = [{**r, "platform": first["platform"]} for r in observe(ROOT, adapter, identity)]
+    differing = [
+        (old["scenario_id"], old["from"], old["to"], old["operation"], old["mode"], old["inputs"])
+        for old, new in zip(records, fresh)
+        if old != new
+    ]
+    assert len(fresh) == len(records)
+    assert differing == []
 
 
 def test_readme_tables_are_generated_from_the_results() -> None:

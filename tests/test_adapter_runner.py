@@ -3,6 +3,7 @@ engine errors recorded, adapter bugs not, records validated before writing."""
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,7 @@ from adapters.runner import (
     CorpusIdentity,
     check_record,
     corpus_identity,
+    current_platform,
     main,
     observe,
     read_results,
@@ -54,9 +56,10 @@ def test_records_cover_every_declared_operation_and_mode() -> None:
         ("read_versions_together", "default", ["v0", "v1"]),
         ("read_versions_together", "strict", ["v0", "v1"]),
     ]
-    assert {(r["corpus_version"], r["corpus_revision"], r["adapter_version"]) for r in records} == {
-        ("0.1.0", IDENTITY.revision, "0.0.1")
+    assert {(r["corpus_version"], r["corpus_revision"], r["adapter_version"], r["platform"]) for r in records} == {
+        ("0.1.0", IDENTITY.revision, "0.0.1", current_platform())
     }
+    assert re.fullmatch(r"(windows|linux|darwin)-(x86_64|arm64)", current_platform())
 
 
 def test_engine_errors_are_recorded_with_relative_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

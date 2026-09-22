@@ -126,6 +126,7 @@ def render(root: Path, results_dir: Path) -> str:
     manifests = {m["scenario_id"]: m for m in (load_json(d / MANIFEST) for d in scenario_dirs(root / "fixtures"))}
     versions = sorted({(r["adapter"], r["adapter_version"]) for r in records})
     corpus = sorted({(r["corpus_version"], r["corpus_revision"]) for r in records})
+    platforms = ", ".join(sorted({r["platform"] for r in records}))
     modes = {
         op: [(a, m) for a, rs in by_adapter.items() for m in dict.fromkeys(r["mode"] for r in rs if r["operation"] == op)]
         for op in OPERATIONS
@@ -173,7 +174,7 @@ def render(root: Path, results_dir: Path) -> str:
     out = [
         BEGIN,
         "",
-        f"Corpus {version} at revision {revisions}; {engines}. Full records: {links}.",
+        f"Corpus {version} at revision {revisions}; {engines}; recorded on {platforms}. Full records: {links}.",
         "",
         f"**Reading two versions as one dataset.** Adapters or modes disagree on "
         f"{len(together_rows)} of {total} transitions. Each cell shows the result type of the columns the "

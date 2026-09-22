@@ -347,6 +347,11 @@ did, in `results/<corpus version>/<adapter>.jsonl` (one record per engine
 call, schema: `schema/result.schema.json`). These are observations about the
 engines, not verdicts on them, and they are not part of the corpus.
 
+Observations are pinned to the engine version, the corpus revision and the
+platform. Linux and Windows on x86_64 give identical records. macOS on arm64
+does not: there, PyArrow's `default` read of `int64_to_float64` succeeds,
+where on x86_64 it raises `ArrowInvalid` for the value 2^63.
+
 | adapter | `read_each_version` | `read_versions_together` modes |
 | --- | --- | --- |
 | PyArrow | `pq.read_table` | `default`: `ds.dataset([from, to])`, schema from the first file; `unified_permissive`: schema from `pa.unify_schemas(..., promote_options="permissive")` |

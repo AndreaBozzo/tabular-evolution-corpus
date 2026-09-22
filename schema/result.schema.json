@@ -15,6 +15,7 @@
     "inputs",
     "adapter",
     "adapter_version",
+    "platform",
     "operation",
     "mode",
     "status",
@@ -25,8 +26,8 @@
   ],
   "properties": {
     "schema_version": {
-      "description": "Version of this record format, independent of the manifest schema_version.",
-      "const": "1.0"
+      "description": "Version of this record format, independent of the manifest schema_version. 1.1 added `platform`.",
+      "const": "1.1"
     },
     "corpus_version": {
       "description": "The corpus release the fixtures belong to, e.g. 0.1.0.",
@@ -52,6 +53,11 @@
       "description": "Version of the engine the adapter drives, as the engine reports it.",
       "type": "string",
       "minLength": 1
+    },
+    "platform": {
+      "description": "Operating system and CPU architecture of the run, e.g. linux-x86_64, windows-x86_64, darwin-arm64. An engine can answer differently on another architecture.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+-[a-z0-9_]+$"
     },
     "operation": {
       "description": "read_each_version: read one version on its own (one record per input). read_versions_together: read `from` and `to` as one dataset.",

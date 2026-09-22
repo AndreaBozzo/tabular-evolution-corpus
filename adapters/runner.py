@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import platform
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -31,7 +32,15 @@ from .base import OPERATIONS, Adapter
 
 RESULT_SCHEMA = Path("schema") / "result.schema.json"
 RESULTS_DIR = Path("results")
-RECORD_VERSION = "1.0"
+RECORD_VERSION = "1.1"
+_MACHINES = {"amd64": "x86_64", "aarch64": "arm64"}
+
+
+def current_platform() -> str:
+    """`<os>-<arch>`, e.g. windows-x86_64, darwin-arm64. The same engine
+    version can answer differently on another CPU architecture."""
+    machine = platform.machine().lower()
+    return f"{platform.system().lower()}-{_MACHINES.get(machine, machine)}"
 
 
 class CorpusError(RuntimeError):
@@ -122,6 +131,7 @@ def observe(root: Path, adapter: Adapter, identity: CorpusIdentity, only: list[s
         raise ValueError(f"{adapter.name}: unknown operations {sorted(unknown)}")
     validator = result_validator(root)
     engine_version = adapter.version
+    run_platform = current_platform()
     records = []
     # Engines see corpus-relative paths, so that paths quoted in their error
     # messages do not depend on where the checkout lives.
@@ -145,6 +155,7 @@ def observe(root: Path, adapter: Adapter, identity: CorpusIdentity, only: list[s
                                 "inputs": inputs,
                                 "adapter": adapter.name,
                                 "adapter_version": engine_version,
+                                "platform": run_platform,
                                 "operation": operation,
                                 "mode": mode,
                                 **_outcome(adapter, operation, mode, [files[i] for i in inputs]),

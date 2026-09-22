@@ -16,7 +16,7 @@ SCHEMA = load_json(ROOT / "schema" / "result.schema.json")
 VALIDATOR = Draft202012Validator(SCHEMA)
 
 SUCCESS: dict[str, Any] = {
-    "schema_version": "1.0",
+    "schema_version": "1.1",
     "corpus_version": "0.1.0",
     "corpus_revision": "6d928a8c2b0b91adc8d8896c8cc6b7cc7488f800",
     "scenario_id": "timestamp_naive_to_utc",
@@ -25,6 +25,7 @@ SUCCESS: dict[str, Any] = {
     "inputs": ["v0", "v1"],
     "adapter": "duckdb",
     "adapter_version": "1.5.5",
+    "platform": "linux-x86_64",
     "operation": "read_versions_together",
     "mode": "union_by_name",
     "status": "success",
@@ -87,7 +88,8 @@ def test_read_each_version_reads_one_input() -> None:
         with_changes(SUCCESS, mode="union-by-name"),
         with_changes(SUCCESS, corpus_revision="6d928a8"),
         with_changes(SUCCESS, corpus_version="v0.1.0"),
-        with_changes(SUCCESS, schema_version="1.1"),
+        with_changes(SUCCESS, schema_version="1.0"),
+        with_changes(SUCCESS, platform="Linux x86_64"),
         with_changes(SUCCESS, result_schema=[{"name": "id", "type": "int64", "nullable": True}]),
         with_changes(SUCCESS, notes=None),
     ],
@@ -106,7 +108,8 @@ def test_read_each_version_reads_one_input() -> None:
         "mode-not-an-identifier",
         "short-revision",
         "version-with-prefix",
-        "unknown-record-format",
+        "earlier-record-format",
+        "platform-not-os-arch",
         "field-without-native-type",
         "notes-not-a-list",
     ],
