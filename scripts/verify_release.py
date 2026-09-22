@@ -67,7 +67,7 @@ def main() -> int:
     text = card.read_text(encoding="utf-8") if card.is_file() else ""
     if f"path: {CATALOG_PATH.as_posix()}" not in text:
         problems.append("hf/README.md must declare a config whose data_files path is data/scenarios.parquet")
-    for name in ("hf/README.md", "README.md", "CITATION.cff", "schema/scenario.schema.json"):
+    for name in ("hf/README.md", "README.md", "CITATION.cff", "schema/scenario.schema.json", "schema/result.schema.json"):
         if re.search(r"<(owner|user|org|repo|todo)>|TODO|TBD", (ROOT / name).read_text(encoding="utf-8"), re.I):
             problems.append(f"{name} still contains a placeholder")
     print("[5] dataset card checked")

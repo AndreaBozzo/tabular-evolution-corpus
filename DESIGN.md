@@ -40,8 +40,8 @@ The ground truth records only what can be checked against the files:
   fact. "This cast is acceptable" is a policy.
 
 So the manifest never contains `compatible`, `breaking`, `safe`, `valid` or
-similar. Adapter results (future work) will record what a particular engine
-*did* with a scenario, in a separate artifact, keyed by `scenario_id`.
+similar. Adapter results (section 7) record what a particular engine *did*
+with a scenario, in a separate artifact, keyed by `scenario_id`.
 
 Invariants are **two-sided**: a declared `false` is checked as strictly as a
 declared `true`. "Values were not preserved" is a claim, and a generator that
@@ -243,15 +243,37 @@ generation, the test suite, and `verify_release.py`.
 | temporal | naive timestamp -> UTC timestamp |
 | edge | empty typed file -> populated file; rows appended to a keyless dataset |
 
-## 7. Future adapters (not in the core package)
+## 7. Adapters (not in the core package)
 
-An adapter runs one operation (read each version, read the union, cast, merge,
-validate against a contract) and emits a result record:
+An adapter runs a fixed operation over a transition under one engine-specific
+mode and emits one result record per engine call, validated against
+`schema/result.schema.json` (JSON Schema 2020-12, versioned separately from
+the manifest):
 
 ```json
-{"scenario_id": "...", "adapter": "duckdb", "adapter_version": "...",
- "operation": "read_union", "status": "success|error",
- "result_schema": [...], "row_count": 10, "error_class": null, "notes": null}
+{"schema_version": "1.0", "corpus_version": "0.1.0", "corpus_revision": "<40-hex commit>",
+ "scenario_id": "timestamp_naive_to_utc", "from": "v0", "to": "v1", "inputs": ["v0", "v1"],
+ "adapter": "duckdb", "adapter_version": "1.5.5",
+ "operation": "read_versions_together", "mode": "union_by_name",
+ "status": "success",
+ "result_schema": [{"name": "event_time", "type": null,
+                    "native_type": "TIMESTAMP WITH TIME ZONE", "nullable": null}],
+ "row_count": 10, "error_class": null, "notes": []}
 ```
 
+- **Corpus identity.** `corpus_version` names a release; `corpus_revision`
+  is the commit the fixtures were read from, which proves which bytes
+  produced the result.
+- **Operation and mode.** `operation` is a closed set. `mode` names the
+  engine's variant (`union_by_name`, `positional`, `unified_permissive`,
+  `diagonal_relaxed`, or `default`). A variant is never encoded in `notes` or
+  in a new operation name.
+- **Types.** `type` is the corpus type vocabulary where the engine's type has
+  a clear equivalent, otherwise null; `native_type` is always the engine's own
+  spelling. `nullable` is null for engines that record no nullability.
+- **Observations only.** No field says pass, fail or compatible, and the
+  policy-word test covers the result schema too. `notes` may quote engine
+  error messages verbatim; that wording is the engine's.
+
 Results are observations about an engine, never corrections of the corpus.
+They live outside `fixtures/` and are never part of a corpus release.
