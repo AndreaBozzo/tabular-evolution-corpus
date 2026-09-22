@@ -621,6 +621,10 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+adapters = [
+    { name = "duckdb" },
+    { name = "polars" },
+]
 compat = [
     { name = "duckdb" },
     { name = "pandas" },
@@ -637,6 +641,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+adapters = [
+    { name = "duckdb", specifier = ">=1.1" },
+    { name = "polars", specifier = ">=1.10" },
+]
 compat = [
     { name = "duckdb", specifier = ">=1.1" },
     { name = "pandas", specifier = ">=2.2" },

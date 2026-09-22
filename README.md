@@ -154,7 +154,8 @@ tabular-evolution-corpus/
 │       ├── v1.parquet      (v2.parquet, ... for longer histories)
 │       └── scenario.json
 ├── schema/
-│   └── scenario.schema.json    JSON Schema 2020-12 for scenario.json
+│   ├── scenario.schema.json    JSON Schema 2020-12 for scenario.json
+│   └── result.schema.json      JSON Schema 2020-12 for adapter observations
 ├── hf/
 │   └── README.md           Hugging Face dataset card (draft)
 ├── src/tabular_evolution/
@@ -169,6 +170,7 @@ tabular-evolution-corpus/
 │   ├── catalog.py          data/scenarios.parquet
 │   ├── release.py          reproducibility comparison, checksums
 │   └── cli.py              `tec list | inspect | validate`
+├── adapters/               Phase 1 engine adapters and runner (not in the package)
 ├── scripts/
 │   ├── generate_fixtures.py
 │   ├── build_catalog.py

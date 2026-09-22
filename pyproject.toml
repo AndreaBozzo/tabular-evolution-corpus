@@ -22,6 +22,8 @@ tec = "tabular_evolution.cli:main"
 [dependency-groups]
 dev = ["pytest>=8"]
 compat = ["duckdb>=1.1", "polars>=1.10", "pandas>=2.2"]
+# Engines driven by adapters/ (not dependencies of the corpus package).
+adapters = ["duckdb>=1.1", "polars>=1.10"]
 
 [build-system]
 requires = ["hatchling"]
@@ -32,3 +34,4 @@ packages = ["src/tabular_evolution"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]  # adapters/ lives next to src/, outside the package
