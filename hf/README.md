@@ -85,6 +85,10 @@ root = snapshot_download("AndreaBozzo/tabular-evolution-corpus", repo_type="data
 # root/fixtures/<scenario_id>/{v0.parquet, v1.parquet, scenario.json}
 ```
 
+Every corpus release is a tag, both here and on GitHub. Pass
+`revision="v0.1.0"` to either call to get exactly that release. A released tag
+is never moved, and a changed corpus gets a new release.
+
 ```sql
 -- DuckDB
 SELECT scenario_id, mutation_kinds, row_counts

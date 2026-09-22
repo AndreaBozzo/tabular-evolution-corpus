@@ -333,6 +333,22 @@ equals `0.0`, no Unicode normalization, text never equals bytes, naive never
 equals zoned) and of each value relation is defined in
 [DESIGN.md](DESIGN.md#invariants).
 
+## Versioning
+
+Three things are versioned, independently of each other:
+
+| what | where | changes when |
+| --- | --- | --- |
+| **Corpus release** (`v0.1.0`) | git tag, GitHub release, Hugging Face tag | any fixture, manifest or catalog change. A release names fixed bytes: its tag is never moved or deleted, and a changed corpus is a new release. |
+| **Manifest format** (`schema_version: "1.0"`) | every `scenario.json` | only the manifest format changes: a new field, mutation kind, relation or invariant, or a changed type spelling. A release that only adds scenarios keeps it. |
+| **Observation runs** | outside `fixtures/` | never folded back into the corpus. A run is keyed by corpus version, corpus revision and adapter version. |
+
+The Python package version is the corpus version. To cite exact bytes, give
+the version and the revision: the git commit, or the Hugging Face commit when
+the files were read from the Hub. Each GitHub release has the tagged
+`SHA256SUMS` attached, so anyone can check a copy of the files against it
+with `sha256sum -c SHA256SUMS`.
+
 ## Scope and non-goals
 
 In scope: physical, versioned tabular datasets; structural and value-level
