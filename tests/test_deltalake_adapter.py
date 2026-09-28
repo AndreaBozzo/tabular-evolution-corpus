@@ -8,11 +8,11 @@ from tempfile import TemporaryDirectory
 import pyarrow.parquet as pq
 import pytest
 
+deltalake = pytest.importorskip("deltalake")
+
 from adapters import deltalake_adapter
 from adapters.runner import CorpusIdentity, observe
 from conftest import ROOT
-
-deltalake = pytest.importorskip("deltalake")
 
 
 def test_additive_change_distinguishes_append_merge_and_overwrite() -> None:
