@@ -251,14 +251,15 @@ mode and emits one result record per engine call, validated against
 the manifest):
 
 ```json
-{"schema_version": "1.1", "corpus_version": "0.2.0", "corpus_revision": "<40-hex commit>",
+{"schema_version": "1.2", "corpus_version": "0.2.0", "corpus_revision": "<40-hex commit>",
  "scenario_id": "timestamp_naive_to_utc", "from": "v0", "to": "v1", "inputs": ["v0", "v1"],
  "adapter": "duckdb", "adapter_version": "1.5.5", "platform": "linux-x86_64",
  "operation": "read_versions_together", "mode": "union_by_name",
  "status": "success",
  "result_schema": [{"name": "event_time", "type": null,
                     "native_type": "TIMESTAMP WITH TIME ZONE", "nullable": null}],
- "row_count": 10, "error_class": null, "notes": []}
+ "row_count": 10, "exit_code": null, "findings": [], "column_profiles": null,
+ "error_class": null, "notes": []}
 ```
 
 - **Corpus identity.** `corpus_version` names a release; `corpus_revision`
@@ -272,9 +273,21 @@ the manifest):
   engine's variant (`union_by_name`, `positional`, `unified_permissive`,
   `diagonal_relaxed`, or `default`). A variant is never encoded in `notes` or
   in a new operation name.
+- **Phase 2 operations (format 1.2).** `append_to_table` creates a table from
+  `from`, then brings in `to`; a completed call records the resulting table
+  schema and row count. `check_against_contract` derives a contract from
+  `from` and checks `to`; a completed call records the tool's exit code and
+  verbatim `findings`. The exit code is null when the tool has none. A nonzero
+  exit code is still a completed observation, while `status: error` is reserved
+  for a raised exception. `profile_each_version` runs on each file separately
+  and records inferred types and null ratios in
+  `column_profiles`. Empty files have a null ratio of null. The stored type
+  stays in the manifest and joins by scenario and input version. These
+  operations are defined here before their adapters are added.
 - **Types.** `type` is the corpus type vocabulary where the engine's type has
   a clear equivalent, otherwise null; `native_type` is always the engine's own
-  spelling. `nullable` is null for engines that record no nullability.
+  spelling. `nullable` is null for engines that record no nullability. A
+  profiler's `inferred_type` uses the same vocabulary where possible.
 - **Observations only.** No field says pass, fail or compatible, and the
   policy-word test covers the result schema too. `notes` may quote engine
   error messages verbatim; that wording is the engine's.

@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from adapters.base import Adapter, Observation, ResultField
+from adapters.base import Adapter, ColumnProfile, Observation, ResultField
 from adapters.runner import (
     CorpusError,
     CorpusIdentity,
@@ -105,6 +105,51 @@ def test_operations_are_a_closed_set() -> None:
         observe(ROOT, Extra(), IDENTITY, ["reorder_columns"])
 
 
+def test_phase_two_operations_keep_modes_and_operation_specific_outcomes() -> None:
+    class PhaseTwo(Adapter):
+        name = "phase_two"
+        version = "0.0.1"
+        modes = {
+            "append_to_table": ("default", "merge"),
+            "check_against_contract": ("default",),
+            "profile_each_version": ("default",),
+        }
+
+        def read(self, operation: str, mode: str, paths: list[str]) -> Any:
+            assert all(Path(p).is_file() for p in paths)
+            return operation, mode, paths
+
+        def describe(self, result: Any) -> Observation:
+            operation, _, _ = result
+            if operation == "append_to_table":
+                return Observation([ResultField("id", "int64", "BIGINT", None)], 12)
+            if operation == "check_against_contract":
+                return Observation(None, None, exit_code=1, findings=["Contract tool says invalid: changed type"])
+            return Observation(None, None, column_profiles=[ColumnProfile("id", "int64", "integer", 0.0)])
+
+    records = observe(ROOT, PhaseTwo(), IDENTITY, ["reorder_columns"])
+    assert [(r["operation"], r["mode"], r["inputs"]) for r in records] == [
+        ("append_to_table", "default", ["v0", "v1"]),
+        ("append_to_table", "merge", ["v0", "v1"]),
+        ("check_against_contract", "default", ["v0", "v1"]),
+        ("profile_each_version", "default", ["v0"]),
+        ("profile_each_version", "default", ["v1"]),
+    ]
+    assert {r["schema_version"] for r in records} == {"1.2"}
+    assert records[2]["exit_code"] == 1
+    assert records[2]["findings"] == ["Contract tool says invalid: changed type"]
+    assert records[2]["status"] == "success"
+    assert records[3]["column_profiles"] == [{"name": "id", "inferred_type": "int64", "native_type": "integer", "null_ratio": 0.0}]
+
+
+def test_phase_two_adapter_cannot_report_a_read_shape_for_a_contract_check() -> None:
+    class WrongShape(FakeAdapter):
+        modes = {"check_against_contract": ("default",)}
+
+    with pytest.raises(ValueError, match="invalid record"):
+        observe(ROOT, WrongShape(), IDENTITY, ["reorder_columns"])
+
+
 def test_inputs_are_the_transition_versions_in_order() -> None:
     record = observe(ROOT, FakeAdapter(), IDENTITY, ["reorder_columns"])[2]
     validator = result_validator(ROOT)
@@ -121,6 +166,13 @@ def test_results_round_trip_as_ascii_json_lines(tmp_path: Path) -> None:
     raw.decode("ascii")
     assert b"\r" not in raw and raw.count(b"\n") == len(records)
     assert read_results(path) == records
+
+
+def test_result_writer_rejects_nonfinite_numbers(tmp_path: Path) -> None:
+    records = observe(ROOT, FakeAdapter(), IDENTITY, ["reorder_columns"])
+    records[0]["column_profiles"] = [{"name": "x", "inferred_type": "double", "native_type": "Float64", "null_ratio": float("nan")}]
+    with pytest.raises(ValueError, match="Out of range float values"):
+        write_results(tmp_path / "invalid.jsonl", records)
 
 
 # ---------------------------------------------------------------- corpus identity

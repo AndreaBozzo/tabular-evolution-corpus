@@ -1,4 +1,4 @@
-"""The catalog loads as documented in the README with each engine.
+"""The catalog loads as documented in docs/USAGE.md with each engine.
 
 These engines are not dependencies of the corpus. Install them with
 `uv sync --group compat`; each test is skipped when its engine is absent.

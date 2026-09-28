@@ -1,5 +1,5 @@
 """Committed observations are valid, reproducible with the pinned engines, and
-the README tables are generated from them."""
+the observations doc is generated from them."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> No
     # Compared across operating systems but not across CPU architectures:
     # Linux and Windows x86_64 reproduce each other's records exactly, while
     # on macOS arm64 PyArrow reads int64_to_float64 without the error it
-    # raises on x86_64 (see README, Observations).
+    # raises on x86_64 (see docs/OBSERVATIONS.md).
     here = current_platform()
     if here.split("-")[1] != first["platform"].split("-")[1]:
         pytest.skip(f"recorded on {first['platform']}, running on {here}")
@@ -66,20 +66,20 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> No
     assert differing == []
 
 
-def test_readme_tables_are_generated_from_the_results() -> None:
+def test_observation_tables_are_generated_from_the_results() -> None:
     assert main(["--root", str(ROOT), "--check"]) == 0
 
 
-def test_readme_check_detects_a_stale_table(tmp_path: Path) -> None:
-    for name in ("fixtures", "results"):
+def test_observation_check_detects_a_stale_table(tmp_path: Path) -> None:
+    for name in ("fixtures", "results", "docs"):
         shutil.copytree(ROOT / name, tmp_path / name)
-    original = (ROOT / "README.md").read_bytes()
+    original = (ROOT / "docs" / "OBSERVATIONS.md").read_bytes()
     stale = original.replace(b"| `add_nested_field` v0", b"| `add_nested_field` v9")
     assert stale != original
-    (tmp_path / "README.md").write_bytes(stale)
+    (tmp_path / "docs" / "OBSERVATIONS.md").write_bytes(stale)
     assert main(["--root", str(tmp_path), "--check"]) == 1
     assert main(["--root", str(tmp_path)]) == 0
-    assert (tmp_path / "README.md").read_bytes() == original
+    assert (tmp_path / "docs" / "OBSERVATIONS.md").read_bytes() == original
 
 
 def record(schema: list[tuple[str, str]] | None, inputs: list[str]) -> dict[str, Any]:

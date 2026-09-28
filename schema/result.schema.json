@@ -21,13 +21,16 @@
     "status",
     "result_schema",
     "row_count",
+    "exit_code",
+    "findings",
+    "column_profiles",
     "error_class",
     "notes"
   ],
   "properties": {
     "schema_version": {
-      "description": "Version of this record format, independent of the manifest schema_version. 1.1 added `platform`.",
-      "const": "1.1"
+      "description": "Version of this record format, independent of the manifest schema_version. 1.2 added Phase 2 operations and their outcome fields.",
+      "const": "1.2"
     },
     "corpus_version": {
       "description": "The corpus release the fixtures belong to, e.g. 0.1.0.",
@@ -43,7 +46,7 @@
     "from": { "$ref": "#/$defs/version_id" },
     "to": { "$ref": "#/$defs/version_id" },
     "inputs": {
-      "description": "The versions read, in the order they were passed to the engine; each is `from` or `to`.",
+      "description": "The versions passed to the engine, in order; each is `from` or `to`.",
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/version_id" }
@@ -60,8 +63,8 @@
       "pattern": "^[a-z0-9]+-[a-z0-9_]+$"
     },
     "operation": {
-      "description": "read_each_version: read one version on its own (one record per input). read_versions_together: read `from` and `to` as one dataset.",
-      "enum": ["read_each_version", "read_versions_together"]
+      "description": "Read each version, read both as one dataset, append `to` to a table created from `from`, check `to` against a contract derived from `from`, or profile each version separately.",
+      "enum": ["read_each_version", "read_versions_together", "append_to_table", "check_against_contract", "profile_each_version"]
     },
     "mode": {
       "description": "The engine-specific variant of the operation, e.g. union_by_name, positional, unified_permissive, diagonal_relaxed; `default` when the engine's default behaviour is used.",
@@ -69,11 +72,27 @@
     },
     "status": { "enum": ["success", "error"] },
     "result_schema": {
-      "description": "Top-level fields of the result, in result order; null when status is error.",
+      "description": "Top-level fields of a read or table result, in result order; null for checks, profiles, or errors.",
       "type": ["array", "null"],
       "items": { "$ref": "#/$defs/result_field" }
     },
-    "row_count": { "type": ["integer", "null"], "minimum": 0 },
+    "row_count": {
+      "description": "Rows in a read or table result; null for checks, profiles, or errors.",
+      "type": ["integer", "null"], "minimum": 0
+    },
+    "exit_code": {
+      "description": "The contract tool's process exit code after a completed check, including a nonzero code for findings in its own vocabulary; null when the tool has no process exit code, for other operations, or for runtime errors.",
+      "type": ["integer", "null"], "minimum": 0
+    },
+    "findings": {
+      "description": "Verbatim findings from a contract tool. An empty array means the tool reported none. Never normalized into a corpus verdict.",
+      "type": "array", "items": { "type": "string", "minLength": 1 }
+    },
+    "column_profiles": {
+      "description": "Per-column inferred types and null ratios for a completed profile; null for other operations or errors.",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/column_profile" }
+    },
     "error_class": {
       "description": "Qualified class name of the exception the engine raised; null when status is success.",
       "type": ["string", "null"],
@@ -90,8 +109,6 @@
       "if": { "properties": { "status": { "const": "success" } } },
       "then": {
         "properties": {
-          "result_schema": { "type": "array" },
-          "row_count": { "type": "integer" },
           "error_class": { "type": "null" }
         }
       },
@@ -99,14 +116,66 @@
         "properties": {
           "result_schema": { "type": "null" },
           "row_count": { "type": "null" },
+          "exit_code": { "type": "null" },
+          "findings": { "maxItems": 0 },
+          "column_profiles": { "type": "null" },
           "error_class": { "type": "string" }
         }
       }
     },
     {
-      "if": { "properties": { "operation": { "const": "read_each_version" } } },
+      "if": { "properties": { "operation": { "enum": ["read_each_version", "profile_each_version"] } } },
       "then": { "properties": { "inputs": { "maxItems": 1 } } },
       "else": { "properties": { "inputs": { "minItems": 2, "maxItems": 2 } } }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "success" },
+          "operation": { "enum": ["read_each_version", "read_versions_together", "append_to_table"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "result_schema": { "type": "array" },
+          "row_count": { "type": "integer" },
+          "exit_code": { "type": "null" },
+          "findings": { "maxItems": 0 },
+          "column_profiles": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "success" },
+          "operation": { "const": "check_against_contract" }
+        }
+      },
+      "then": {
+        "properties": {
+          "result_schema": { "type": "null" },
+          "row_count": { "type": "null" },
+          "column_profiles": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "success" },
+          "operation": { "const": "profile_each_version" }
+        }
+      },
+      "then": {
+        "properties": {
+          "result_schema": { "type": "null" },
+          "row_count": { "type": "null" },
+          "exit_code": { "type": "null" },
+          "findings": { "maxItems": 0 },
+          "column_profiles": { "type": "array" }
+        }
+      }
     }
   ],
   "$defs": {
@@ -131,6 +200,23 @@
         "nullable": {
           "description": "The engine's nullability flag for the field; null when the engine records none.",
           "type": ["boolean", "null"]
+        }
+      }
+    },
+    "column_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "inferred_type", "native_type", "null_ratio"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "inferred_type": {
+          "description": "The inferred type in the corpus vocabulary, or null when there is no clear equivalent.",
+          "type": ["string", "null"], "minLength": 1
+        },
+        "native_type": { "type": "string", "minLength": 1 },
+        "null_ratio": {
+          "description": "Fraction of rows with a null value; null when there are zero rows.",
+          "type": ["number", "null"], "minimum": 0, "maximum": 1
         }
       }
     }

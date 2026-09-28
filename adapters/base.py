@@ -16,7 +16,14 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-OPERATIONS = ("read_each_version", "read_versions_together")
+OPERATIONS = (
+    "read_each_version",
+    "read_versions_together",
+    "append_to_table",
+    "check_against_contract",
+    "profile_each_version",
+)
+SINGLE_VERSION_OPERATIONS = frozenset({"read_each_version", "profile_each_version"})
 
 
 @dataclass(frozen=True)
@@ -31,10 +38,29 @@ class ResultField:
 
 
 @dataclass(frozen=True)
+class ColumnProfile:
+    name: str
+    inferred_type: str | None  # corpus type vocabulary, when there is a clear equivalent
+    native_type: str  # the profiler's own spelling
+    null_ratio: float | None  # None when the version has no rows
+
+    def to_record(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "inferred_type": self.inferred_type,
+            "native_type": self.native_type,
+            "null_ratio": self.null_ratio,
+        }
+
+
+@dataclass(frozen=True)
 class Observation:
-    fields: list[ResultField]
-    row_count: int
+    fields: list[ResultField] | None
+    row_count: int | None
     notes: list[str] = field(default_factory=list)
+    exit_code: int | None = None
+    findings: list[str] = field(default_factory=list)
+    column_profiles: list[ColumnProfile] | None = None
 
 
 class Adapter(ABC):
@@ -53,4 +79,4 @@ class Adapter(ABC):
 
     @abstractmethod
     def describe(self, result: Any) -> Observation:
-        """Describe what `read` returned, without converting values to Python."""
+        """Describe the engine's result without making a compatibility verdict."""

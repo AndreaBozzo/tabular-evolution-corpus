@@ -28,11 +28,11 @@ from tabular_evolution.generate import MANIFEST
 from tabular_evolution.validate import load_json, scenario_dirs
 
 from . import REGISTRY, load_adapter
-from .base import OPERATIONS, Adapter
+from .base import OPERATIONS, SINGLE_VERSION_OPERATIONS, Adapter
 
 RESULT_SCHEMA = Path("schema") / "result.schema.json"
 RESULTS_DIR = Path("results")
-RECORD_VERSION = "1.1"
+RECORD_VERSION = "1.2"
 _MACHINES = {"amd64": "x86_64", "aarch64": "arm64"}
 
 
@@ -75,7 +75,7 @@ def corpus_identity(root: Path, version: str = __version__) -> CorpusIdentity:
 
 
 def _inputs(operation: str, from_: str, to: str) -> list[list[str]]:
-    return [[from_], [to]] if operation == "read_each_version" else [[from_, to]]
+    return [[from_], [to]] if operation in SINGLE_VERSION_OPERATIONS else [[from_, to]]
 
 
 def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> dict[str, Any]:
@@ -92,25 +92,40 @@ def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> d
             "status": "error",
             "result_schema": None,
             "row_count": None,
+            "exit_code": None,
+            "findings": [],
+            "column_profiles": None,
             "error_class": f"{kind.__module__}.{kind.__qualname__}",
             "notes": [message] if message else [],
         }
     seen = adapter.describe(result)  # an exception here is an adapter bug: let it stop the run
-    unmapped = [f"{f.name}: {f.native_type} has no equivalent in the corpus type vocabulary" for f in seen.fields if f.type is None]
+    unmapped = [f"{f.name}: {f.native_type} has no equivalent in the corpus type vocabulary" for f in seen.fields or [] if f.type is None]
+    unmapped += [
+        f"{p.name}: {p.native_type} has no equivalent in the corpus type vocabulary"
+        for p in seen.column_profiles or []
+        if p.inferred_type is None
+    ]
     return {
         "status": "success",
-        "result_schema": [f.to_record() for f in seen.fields],
+        "result_schema": [f.to_record() for f in seen.fields] if seen.fields is not None else None,
         "row_count": seen.row_count,
+        "exit_code": seen.exit_code,
+        "findings": seen.findings,
+        "column_profiles": [p.to_record() for p in seen.column_profiles] if seen.column_profiles is not None else None,
         "error_class": None,
         "notes": unmapped + seen.notes,
     }
 
 
 def check_record(record: dict[str, Any], validator: Draft202012Validator) -> list[str]:
-    """Schema conformance plus the rule a schema cannot express: the inputs
-    are the transition's own versions, in order."""
+    """Schema conformance plus rules JSON Schema cannot express: inputs are
+    the transition's own versions, in order, and the record is strict JSON."""
     problems = [f"{'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}" for e in validator.iter_errors(record)]
     if not problems:
+        try:
+            json.dumps(record, allow_nan=False)
+        except (TypeError, ValueError) as e:
+            problems.append(f"record is not strict JSON: {e}")
         expected = _inputs(record["operation"], record["from"], record["to"])
         if record["inputs"] not in expected:
             problems.append(f"inputs {record['inputs']} are not one of {expected}")
@@ -174,7 +189,7 @@ def results_path(root: Path, adapter_name: str, corpus_version: str) -> Path:
 def write_results(path: Path, records: list[dict[str, Any]]) -> Path:
     """One record per line, ASCII-only, LF endings."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = "".join(json.dumps(r, ensure_ascii=True) + "\n" for r in records)
+    text = "".join(json.dumps(r, ensure_ascii=True, allow_nan=False) + "\n" for r in records)
     path.write_bytes(text.encode("ascii"))
     return path
 
