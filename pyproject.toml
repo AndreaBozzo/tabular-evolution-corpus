@@ -23,7 +23,11 @@ tec = "tabular_evolution.cli:main"
 dev = ["pytest>=8"]
 compat = ["duckdb>=1.1", "polars>=1.10", "pandas>=2.2"]
 # Engines driven by adapters/ (not dependencies of the corpus package).
-adapters = ["duckdb>=1.1", "polars>=1.10"]
+adapters = [
+    "deltalake==1.6.6",
+    "duckdb>=1.1",
+    "polars>=1.10",
+]
 
 [build-system]
 requires = ["hatchling"]

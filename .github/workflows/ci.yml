@@ -65,5 +65,5 @@ jobs:
       - name: adapter tests pass without skips
         shell: bash
         run: |
-          uv run pytest tests/test_adapters.py tests/test_report.py -q | tee pytest.out
+          uv run pytest tests/test_adapters.py tests/test_deltalake_adapter.py tests/test_report.py -q | tee pytest.out
           grep -Eq "^[0-9]+ passed in " pytest.out

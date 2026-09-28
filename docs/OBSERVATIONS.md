@@ -1,7 +1,7 @@
 # Engine observations
 
-Phase 1 runs a few engines over every transition and records what each one
-did, in `results/<corpus version>/<adapter>.jsonl` (one record per engine
+Adapters run engines over every transition and record what each one did in
+`results/<corpus version>/<adapter>.jsonl` (one record per engine
 call, schema: `schema/result.schema.json`). These are observations about the
 engines, not verdicts on them, and they are not part of the corpus.
 
@@ -16,12 +16,12 @@ where on x86_64 it raises `ArrowInvalid` for the value 2^63.
 | DuckDB | `read_parquet(file)` | `positional`: `read_parquet([from, to])` (DuckDB's default); `union_by_name` |
 | Polars | `pl.read_parquet` | `default`: `pl.scan_parquet([from, to]).collect()`; `diagonal_relaxed`: `pl.concat(..., how="diagonal_relaxed")` |
 
-Result format 1.2 also defines three Phase 2 operations for future adapters:
-`append_to_table` records the table schema and row count after bringing `to`
-into a table created from `from`; `check_against_contract` records the tool's
-exit code when available and findings verbatim; `profile_each_version` records
-inferred types and null ratios per column. Modes distinguish engine variants
-within each operation. No Phase 2 adapter runs are included in the tables below.
+Delta Lake is the first Phase 2 adapter. It creates a fresh local table from
+`from` on each call, then writes `to` with default append rules, append with
+`schema_mode="merge"`, or overwrite with `schema_mode="overwrite"`. The
+resulting Delta schema and row count are recorded. The two remaining Phase 2
+operations, `check_against_contract` and `profile_each_version`, have no
+adapter runs yet. [delta-rs documents these write modes](https://delta-io.github.io/delta-rs/usage/writing/).
 
 ```bash
 uv sync --group adapters

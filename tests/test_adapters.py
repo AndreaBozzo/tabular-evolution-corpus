@@ -14,12 +14,12 @@ from typing import Any, Callable
 import pytest
 
 from adapters import REGISTRY, load_adapter
-from adapters.base import OPERATIONS
+from adapters.base import OPERATIONS, SINGLE_VERSION_OPERATIONS
 from adapters.runner import CorpusIdentity, observe
 from conftest import ROOT, SCENARIO_IDS, load
 
 IDENTITY = CorpusIdentity("0.1.0", "0" * 40)
-ENGINE_MODULE = {"duckdb": "duckdb", "polars": "polars", "pyarrow_dataset": "pyarrow"}
+ENGINE_MODULE = {"deltalake": "deltalake", "duckdb": "duckdb", "polars": "polars", "pyarrow_dataset": "pyarrow"}
 
 
 @cache
@@ -47,7 +47,7 @@ def test_every_declared_operation_and_mode_runs_on_every_transition(name: str) -
         for t in load(sid).manifest["transitions"]:
             for operation in OPERATIONS:
                 for mode in adapter.modes.get(operation, ()):
-                    inputs = [[t["from"]], [t["to"]]] if operation == "read_each_version" else [[t["from"], t["to"]]]
+                    inputs = [[t["from"]], [t["to"]]] if operation in SINGLE_VERSION_OPERATIONS else [[t["from"], t["to"]]]
                     expected += [(sid, t["from"], t["to"], operation, mode, i) for i in inputs]
     assert [(r["scenario_id"], r["from"], r["to"], r["operation"], r["mode"], r["inputs"]) for r in seen] == expected
 
@@ -57,7 +57,12 @@ def test_error_records_come_from_the_engine(name: str) -> None:
     """An exception from Python itself (TypeError, KeyError, ...) in `read`
     would be an adapter bug recorded as an engine answer."""
     errors = [r["error_class"] for r in adapter_records(name) if r["status"] == "error"]
-    assert [e for e in errors if e.startswith("builtins.")] == []
+    if name == "deltalake":
+        # delta-rs 1.6.6 itself raises builtins.Exception for the out-of-range
+        # int-to-float cast (checked by a direct library call in the Delta test).
+        assert [e for e in errors if e.startswith("builtins.")] == ["builtins.Exception"] * 2
+    else:
+        assert [e for e in errors if e.startswith("builtins.")] == []
 
 
 # ---------------------------------------------------------------- PyArrow

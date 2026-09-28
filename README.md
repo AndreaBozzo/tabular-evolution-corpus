@@ -29,7 +29,7 @@ See [using the corpus](docs/USAGE.md) for examples.
 
 - [Scenario inventory](docs/SCENARIOS.md) — all 35 changes, with a manifest example.
 - [Using the corpus](docs/USAGE.md) — catalog queries and fixture consumption.
-- [Engine observations](docs/OBSERVATIONS.md) — PyArrow, DuckDB, and Polars results.
+- [Engine observations](docs/OBSERVATIONS.md) — PyArrow, DuckDB, Polars, and Delta Lake.
 - [Development and releases](docs/DEVELOPMENT.md) — regeneration, contribution, and versioning.
 - [Design](DESIGN.md) — the fact model and validation rules.
 
