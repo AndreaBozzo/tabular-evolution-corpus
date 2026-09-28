@@ -279,10 +279,10 @@ the manifest):
   which file comes first; for a table, `[to, from]` writes the older version
   into a table that already holds the newer one.
 - **Phase 2 operations (format 1.2).** `append_to_table` creates a table from
-  `from`, then brings in `to`; a completed call records the resulting table
-  schema and row count. `check_against_contract` derives a contract from
-  `from` and checks `to`; a completed call records the tool's exit code and
-  verbatim `findings`. The exit code is null when the tool has none. A nonzero
+  the first input, then brings in the second; a completed call records the
+  resulting table schema and row count. `check_against_contract` derives a
+  contract from the first input and checks the second; a completed call
+  records the tool's exit code and verbatim `findings`. The exit code is null when the tool has none. A nonzero
   exit code is still a completed observation, while `status: error` is reserved
   for a raised exception. `profile_each_version` runs on each file separately
   and records inferred types and null ratios in
