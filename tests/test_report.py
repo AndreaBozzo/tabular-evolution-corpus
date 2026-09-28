@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 from adapters import REGISTRY, load_adapter
-from adapters.report import _order_rule, _relative, latest_results, main
+from adapters.report import _order_dependent, _relative, latest_results, main
 from adapters.runner import CorpusIdentity, check_record, current_platform, observe, read_results, result_validator
 from conftest import ROOT
 from tabular_evolution import __version__
@@ -117,23 +117,26 @@ ALONE = {"v0": record([("id", "int64"), ("x", "int32")], ["v0"]), "v1": record([
 V0, V1 = [("id", "int64"), ("x", "int32")], [("id", "int64"), ("x", "int64")]
 
 
-def test_a_first_file_mode_follows_one_rule_in_both_orders() -> None:
-    assert _order_rule(record(V0, ["v0", "v1"]), ALONE) == _order_rule(record(V1, ["v1", "v0"]), ALONE)
+@pytest.mark.parametrize(
+    ("forward", "reversed_"),
+    [
+        (record(V0, ["v0", "v1"]), record(V1, ["v1", "v0"])),  # the first file wins in both orders
+        (record(V1, ["v0", "v1"]), record(V1, ["v1", "v0"])),  # the same version wins in both orders
+        (record([("x", "double")], ["v0", "v1"]), record([("x", "double")], ["v1", "v0"])),  # unified alike
+        (record(None, ["v0", "v1"]), record(None, ["v1", "v0"])),  # fails in both orders
+    ],
+)
+def test_a_result_that_follows_one_rule_does_not_depend_on_order(forward: Any, reversed_: Any) -> None:
+    assert not _order_dependent(forward, reversed_, ALONE)
 
 
 @pytest.mark.parametrize(
     ("forward", "reversed_"),
     [
-        (record(V0, ["v0", "v1"]), record(V0, ["v1", "v0"])),  # v0 wins in both orders: a different position
         (record(V0, ["v0", "v1"]), record(None, ["v1", "v0"])),  # fails in one order only
         (record(V0, ["v0", "v1"], rows=2), record(V1, ["v1", "v0"], rows=1)),  # rows lost in one order
-        (record([("x", "double")], ["v0", "v1"]), record([("x", "string")], ["v1", "v0"])),  # neither, differently
+        (record([("x", "double")], ["v0", "v1"]), record([("x", "string")], ["v1", "v0"])),  # unified differently
     ],
 )
-def test_order_dependence_is_detected(forward: dict[str, Any], reversed_: dict[str, Any]) -> None:
-    assert _order_rule(forward, ALONE) != _order_rule(reversed_, ALONE)
-
-
-def test_a_unified_result_is_the_same_rule_in_both_orders() -> None:
-    unified = [("id", "int64"), ("x", "double")]
-    assert _order_rule(record(unified, ["v0", "v1"]), ALONE) == _order_rule(record(unified, ["v1", "v0"]), ALONE)
+def test_a_result_that_changes_with_the_order_is_detected(forward: Any, reversed_: Any) -> None:
+    assert _order_dependent(forward, reversed_, ALONE)

@@ -80,17 +80,22 @@ def _in_order(records: list[dict[str, Any]], inputs: list[str]) -> dict[str, Any
     return next((r for r in records if r["inputs"] == inputs), None)
 
 
-def _order_rule(record: dict[str, Any], alone: dict[str, dict[str, Any]]) -> Any:
-    """A combined read described by position rather than by version, so that
-    a mode following the first file in both orders reads as one rule: like
-    the first file, like the second, like both, like neither (with its
-    schema), or an error; plus the row count."""
-    relation = _relative(record, alone)
-    if relation in ("error", "neither", "both"):
-        position = relation
-    else:
-        position = "first" if relation == record["inputs"][0] else "second"
-    return position, record["row_count"], _schema_key(record) if position == "neither" else None
+def _order_dependent(forward: dict[str, Any], reversed_: dict[str, Any], alone: dict[str, dict[str, Any]]) -> bool:
+    """Whether a combined read depends on the order of its two files.
+
+    It does not when both orders give the same outcome by version (a mode
+    that unifies both schemas returns the same result either way), nor when
+    they give the same outcome by position (a mode that takes whichever file
+    comes first). Outcomes are like one version, like both, like neither
+    (with its schema) or an error, plus the row count."""
+
+    def outcome(record: dict[str, Any], by_position: bool) -> Any:
+        relation = _relative(record, alone)
+        if by_position and relation not in ("error", "neither", "both"):
+            relation = "first" if relation == record["inputs"][0] else "second"
+        return relation, record["row_count"], _schema_key(record) if relation == "neither" else None
+
+    return all(outcome(forward, p) != outcome(reversed_, p) for p in (False, True))
 
 
 def _focus(transition: dict[str, Any]) -> list[str]:
@@ -188,7 +193,7 @@ def render(root: Path, results_dir: Path) -> str:
         reversed_ = [_in_order(cells[("read_versions_together", a, m)], [to, from_]) for a, m in modes["read_versions_together"]]
         if all(r is not None for r in reversed_):
             pairs_by_order = list(zip(outcomes, reversed_))
-            changed = [_order_rule(f, alone[f["adapter"]]) != _order_rule(r, alone[r["adapter"]]) for f, r in pairs_by_order]
+            changed = [_order_dependent(f, r, alone[f["adapter"]]) for f, r in pairs_by_order]
             if any(changed):
                 focus = _focus(transition(key)) or _columns_of_disagreement([r for pair in pairs_by_order for r in pair])
                 order_rows.append([
@@ -236,10 +241,11 @@ def render(root: Path, results_dir: Path) -> str:
     if order_rows:
         out += [
             f"**The same two versions in the other order.** Each two-version call also runs with the files "
-            f"swapped. A mode that takes the schema of whichever file comes first follows one rule in both "
-            f"orders; the {len(order_rows)} of {total} transitions below are the ones where some mode does not: "
-            "a different position wins, the call fails in one order only, the row count changes, or a result "
-            "like neither file has a different schema. `-`: the same rule in both orders. Marks as above.",
+            f"swapped. A result does not depend on the order when both orders give the same outcome, or when "
+            f"each order gives the outcome of the file that comes first. The {len(order_rows)} of {total} "
+            "transitions below are the ones where some mode's result depends on the order: it fails in one order "
+            "only, the row count changes, or the schema changes in some other way. `-`: the result does not "
+            "depend on the order. Marks as above.",
             "",
             *_table(
                 ["transition", *(f"{ENGINE_NAMES.get(a, a)} `{m}`" for a, m in modes["read_versions_together"])], order_rows
