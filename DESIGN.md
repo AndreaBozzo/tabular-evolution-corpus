@@ -273,6 +273,11 @@ the manifest):
   engine's variant (`union_by_name`, `positional`, `unified_permissive`,
   `diagonal_relaxed`, or `default`). A variant is never encoded in `notes` or
   in a new operation name.
+- **Order.** `inputs` lists the versions in the order the engine received
+  them. Two-version operations run twice per transition, as `[from, to]`
+  and `[to, from]`, because engines can answer differently depending on
+  which file comes first; for a table, `[to, from]` writes the older version
+  into a table that already holds the newer one.
 - **Phase 2 operations (format 1.2).** `append_to_table` creates a table from
   `from`, then brings in `to`; a completed call records the resulting table
   schema and row count. `check_against_contract` derives a contract from

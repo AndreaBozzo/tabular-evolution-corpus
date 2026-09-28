@@ -47,7 +47,10 @@ def test_every_declared_operation_and_mode_runs_on_every_transition(name: str) -
         for t in load(sid).manifest["transitions"]:
             for operation in OPERATIONS:
                 for mode in adapter.modes.get(operation, ()):
-                    inputs = [[t["from"]], [t["to"]]] if operation in SINGLE_VERSION_OPERATIONS else [[t["from"], t["to"]]]
+                    if operation in SINGLE_VERSION_OPERATIONS:
+                        inputs = [[t["from"]], [t["to"]]]
+                    else:
+                        inputs = [[t["from"], t["to"]], [t["to"], t["from"]]]
                     expected += [(sid, t["from"], t["to"], operation, mode, i) for i in inputs]
     assert [(r["scenario_id"], r["from"], r["to"], r["operation"], r["mode"], r["inputs"]) for r in seen] == expected
 
@@ -97,7 +100,7 @@ def test_pyarrow_default_dataset_takes_the_first_file_schema() -> None:
     ]
     assert together
     for r in together:
-        assert reported(r) == declared(r["scenario_id"], r["from"]), r["scenario_id"]
+        assert reported(r) == declared(r["scenario_id"], r["inputs"][0]), (r["scenario_id"], r["inputs"])
 
 
 # ---------------------------------------------------------------- DuckDB
@@ -169,7 +172,7 @@ def test_first_file_modes_return_the_first_file_columns(name: str, mode: str) ->
     ]
     assert together
     for r in together:
-        assert names(r["result_schema"]) == names(declared(r["scenario_id"], r["from"])), r["scenario_id"]
+        assert names(r["result_schema"]) == names(declared(r["scenario_id"], r["inputs"][0])), (r["scenario_id"], r["inputs"])
 
 
 # ---------------------------------------------------------------- Polars

@@ -17,7 +17,7 @@ from conftest import ROOT
 
 def test_additive_change_distinguishes_append_merge_and_overwrite() -> None:
     records = observe(ROOT, deltalake_adapter.DeltaLakeAdapter(), CorpusIdentity("0.2.0", "0" * 40), ["add_nullable_int64_column"])
-    by_mode = {record["mode"]: record for record in records}
+    by_mode = {record["mode"]: record for record in records if record["inputs"] == ["v0", "v1"]}
     assert by_mode["default"]["status"] == "error"
     assert by_mode["merge"]["status"] == "success"
     assert by_mode["merge"]["row_count"] == 12

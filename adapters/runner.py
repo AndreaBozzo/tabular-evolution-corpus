@@ -75,7 +75,11 @@ def corpus_identity(root: Path, version: str = __version__) -> CorpusIdentity:
 
 
 def _inputs(operation: str, from_: str, to: str) -> list[list[str]]:
-    return [[from_], [to]] if operation in SINGLE_VERSION_OPERATIONS else [[from_, to]]
+    """Single-version operations see each version; two-version operations see
+    both orders, since engines can answer differently depending on which file
+    comes first (and for a table, `[to, from]` is an older schema appended to
+    a newer table)."""
+    return [[from_], [to]] if operation in SINGLE_VERSION_OPERATIONS else [[from_, to], [to, from_]]
 
 
 def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> dict[str, Any]:
@@ -119,7 +123,8 @@ def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> d
 
 def check_record(record: dict[str, Any], validator: Draft202012Validator) -> list[str]:
     """Schema conformance plus rules JSON Schema cannot express: inputs are
-    the transition's own versions, in order, and the record is strict JSON."""
+    the transition's own versions, in one of the orders the runner uses, and
+    the record is strict JSON."""
     problems = [f"{'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}" for e in validator.iter_errors(record)]
     if not problems:
         try:

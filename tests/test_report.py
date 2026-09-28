@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 from adapters import REGISTRY, load_adapter
-from adapters.report import _relative, latest_results, main
+from adapters.report import _order_rule, _relative, latest_results, main
 from adapters.runner import CorpusIdentity, check_record, current_platform, observe, read_results, result_validator
 from conftest import ROOT
 from tabular_evolution import __version__
@@ -82,12 +82,13 @@ def test_observation_check_detects_a_stale_table(tmp_path: Path) -> None:
     assert (tmp_path / "docs" / "OBSERVATIONS.md").read_bytes() == original
 
 
-def record(schema: list[tuple[str, str]] | None, inputs: list[str]) -> dict[str, Any]:
+def record(schema: list[tuple[str, str]] | None, inputs: list[str], rows: int = 2) -> dict[str, Any]:
     if schema is None:
-        return {"status": "error", "inputs": inputs}
+        return {"status": "error", "inputs": inputs, "row_count": None}
     return {
         "status": "success",
         "inputs": inputs,
+        "row_count": rows,
         "result_schema": [{"name": n, "type": t, "native_type": t.upper(), "nullable": None} for n, t in schema],
     }
 
@@ -110,3 +111,29 @@ def test_a_combined_read_like_two_identical_versions_is_both() -> None:
     same = [("id", "int64"), ("s", "struct<a: int32 not null>")]
     alone = {"v0": record(same, ["v0"]), "v1": record([("id", "int64"), ("s", "struct<a: int32>")], ["v1"])}
     assert _relative(record(same, ["v0", "v1"]), alone) == "both"  # nullability is not compared
+
+
+ALONE = {"v0": record([("id", "int64"), ("x", "int32")], ["v0"]), "v1": record([("id", "int64"), ("x", "int64")], ["v1"])}
+V0, V1 = [("id", "int64"), ("x", "int32")], [("id", "int64"), ("x", "int64")]
+
+
+def test_a_first_file_mode_follows_one_rule_in_both_orders() -> None:
+    assert _order_rule(record(V0, ["v0", "v1"]), ALONE) == _order_rule(record(V1, ["v1", "v0"]), ALONE)
+
+
+@pytest.mark.parametrize(
+    ("forward", "reversed_"),
+    [
+        (record(V0, ["v0", "v1"]), record(V0, ["v1", "v0"])),  # v0 wins in both orders: a different position
+        (record(V0, ["v0", "v1"]), record(None, ["v1", "v0"])),  # fails in one order only
+        (record(V0, ["v0", "v1"], rows=2), record(V1, ["v1", "v0"], rows=1)),  # rows lost in one order
+        (record([("x", "double")], ["v0", "v1"]), record([("x", "string")], ["v1", "v0"])),  # neither, differently
+    ],
+)
+def test_order_dependence_is_detected(forward: dict[str, Any], reversed_: dict[str, Any]) -> None:
+    assert _order_rule(forward, ALONE) != _order_rule(reversed_, ALONE)
+
+
+def test_a_unified_result_is_the_same_rule_in_both_orders() -> None:
+    unified = [("id", "int64"), ("x", "double")]
+    assert _order_rule(record(unified, ["v0", "v1"]), ALONE) == _order_rule(record(unified, ["v1", "v0"]), ALONE)

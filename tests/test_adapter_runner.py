@@ -47,14 +47,16 @@ class FakeAdapter(Adapter):
 
 def test_records_cover_every_declared_operation_and_mode() -> None:
     records = observe(ROOT, FakeAdapter(), IDENTITY, SCENARIOS)
-    # per transition: read_each_version reads two versions, read_versions_together runs two modes
-    assert len(records) == 3 * (2 + 2)
+    # per transition: read_each_version reads two versions, read_versions_together runs two modes in both orders
+    assert len(records) == 3 * (2 + 2 * 2)
     first = [r for r in records if r["scenario_id"] == "add_all_null_column" and r["from"] == "v0"]
     assert [(r["operation"], r["mode"], r["inputs"]) for r in first] == [
         ("read_each_version", "default", ["v0"]),
         ("read_each_version", "default", ["v1"]),
         ("read_versions_together", "default", ["v0", "v1"]),
+        ("read_versions_together", "default", ["v1", "v0"]),
         ("read_versions_together", "strict", ["v0", "v1"]),
+        ("read_versions_together", "strict", ["v1", "v0"]),
     ]
     assert {(r["corpus_version"], r["corpus_revision"], r["adapter_version"], r["platform"]) for r in records} == {
         ("0.1.0", IDENTITY.revision, "0.0.1", current_platform())
@@ -65,11 +67,12 @@ def test_records_cover_every_declared_operation_and_mode() -> None:
 def test_engine_errors_are_recorded_with_relative_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)  # engines see the corpus root as their working directory regardless
     records = observe(ROOT, FakeAdapter(), IDENTITY, ["reorder_columns"])
-    assert [r["status"] for r in records if r["mode"] != "strict"] == ["success"] * 3
-    error = next(r for r in records if r["mode"] == "strict")
+    assert [r["status"] for r in records if r["mode"] != "strict"] == ["success"] * 4
+    error, swapped = [r for r in records if r["mode"] == "strict"]
     assert error["status"] == "error"
     assert error["error_class"] == "builtins.ValueError"
     assert error["notes"] == ["strict refuses fixtures/reorder_columns/v0.parquet fixtures/reorder_columns/v1.parquet"]
+    assert swapped["notes"] == ["strict refuses fixtures/reorder_columns/v1.parquet fixtures/reorder_columns/v0.parquet"]
     assert (error["result_schema"], error["row_count"]) == (None, None)
 
 
@@ -130,16 +133,19 @@ def test_phase_two_operations_keep_modes_and_operation_specific_outcomes() -> No
     records = observe(ROOT, PhaseTwo(), IDENTITY, ["reorder_columns"])
     assert [(r["operation"], r["mode"], r["inputs"]) for r in records] == [
         ("append_to_table", "default", ["v0", "v1"]),
+        ("append_to_table", "default", ["v1", "v0"]),
         ("append_to_table", "merge", ["v0", "v1"]),
+        ("append_to_table", "merge", ["v1", "v0"]),
         ("check_against_contract", "default", ["v0", "v1"]),
+        ("check_against_contract", "default", ["v1", "v0"]),
         ("profile_each_version", "default", ["v0"]),
         ("profile_each_version", "default", ["v1"]),
     ]
     assert {r["schema_version"] for r in records} == {"1.2"}
-    assert records[2]["exit_code"] == 1
-    assert records[2]["findings"] == ["Contract tool says invalid: changed type"]
-    assert records[2]["status"] == "success"
-    assert records[3]["column_profiles"] == [{"name": "id", "inferred_type": "int64", "native_type": "integer", "null_ratio": 0.0}]
+    assert records[4]["exit_code"] == 1
+    assert records[4]["findings"] == ["Contract tool says invalid: changed type"]
+    assert records[4]["status"] == "success"
+    assert records[6]["column_profiles"] == [{"name": "id", "inferred_type": "int64", "native_type": "integer", "null_ratio": 0.0}]
 
 
 def test_phase_two_adapter_cannot_report_a_read_shape_for_a_contract_check() -> None:
@@ -150,11 +156,12 @@ def test_phase_two_adapter_cannot_report_a_read_shape_for_a_contract_check() -> 
         observe(ROOT, WrongShape(), IDENTITY, ["reorder_columns"])
 
 
-def test_inputs_are_the_transition_versions_in_order() -> None:
+def test_inputs_are_the_transition_versions_in_either_order() -> None:
     record = observe(ROOT, FakeAdapter(), IDENTITY, ["reorder_columns"])[2]
     validator = result_validator(ROOT)
     assert check_record(record, validator) == []
-    assert check_record({**record, "inputs": ["v1", "v0"]}, validator) != []
+    assert check_record({**record, "inputs": ["v1", "v0"]}, validator) == []
+    assert check_record({**record, "inputs": ["v1", "v1"]}, validator) != []
     assert check_record({**record, "operation": "read_each_version", "inputs": ["v2"]}, validator) != []
 
 

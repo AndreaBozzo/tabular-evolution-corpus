@@ -16,10 +16,14 @@ where on x86_64 it raises `ArrowInvalid` for the value 2^63.
 | DuckDB | `read_parquet(file)` | `positional`: `read_parquet([from, to])` (DuckDB's default); `union_by_name` |
 | Polars | `pl.read_parquet` | `default`: `pl.scan_parquet([from, to]).collect()`; `diagonal_relaxed`: `pl.concat(..., how="diagonal_relaxed")` |
 
+Every two-version call runs in both orders, `[from, to]` and `[to, from]`;
+`[from, to]` in the table below stands for the first file and the second.
+
 Delta Lake is the first Phase 2 adapter. It creates a fresh local table from
-`from` on each call, then writes `to` with default append rules, append with
-`schema_mode="merge"`, or overwrite with `schema_mode="overwrite"`. The
-resulting Delta schema and row count are recorded. The two remaining Phase 2
+the first file on each call, then writes the second with default append
+rules, append with `schema_mode="merge"`, or overwrite with
+`schema_mode="overwrite"`. The resulting Delta schema and row count are
+recorded. The two remaining Phase 2
 operations, `check_against_contract` and `profile_each_version`, have no
 adapter runs yet. [delta-rs documents these write modes](https://delta-io.github.io/delta-rs/usage/writing/).
 

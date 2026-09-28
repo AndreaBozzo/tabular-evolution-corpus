@@ -75,6 +75,24 @@ def _relative(record: dict[str, Any], alone: dict[str, dict[str, Any]]) -> str:
     return like[0] if len(like) == 1 else "both"
 
 
+def _in_order(records: list[dict[str, Any]], inputs: list[str]) -> dict[str, Any] | None:
+    """The record of a two-version call made with `inputs` in that order."""
+    return next((r for r in records if r["inputs"] == inputs), None)
+
+
+def _order_rule(record: dict[str, Any], alone: dict[str, dict[str, Any]]) -> Any:
+    """A combined read described by position rather than by version, so that
+    a mode following the first file in both orders reads as one rule: like
+    the first file, like the second, like both, like neither (with its
+    schema), or an error; plus the row count."""
+    relation = _relative(record, alone)
+    if relation in ("error", "neither", "both"):
+        position = relation
+    else:
+        position = "first" if relation == record["inputs"][0] else "second"
+    return position, record["row_count"], _schema_key(record) if position == "neither" else None
+
+
 def _focus(transition: dict[str, Any]) -> list[str]:
     """Top-level columns a transition touches, in first-mention order."""
     paths = [m["path"] for m in transition["mutations"]] + [m["old_path"] for m in transition["mutations"] if "old_path" in m]
@@ -149,13 +167,13 @@ def render(root: Path, results_dir: Path) -> str:
     def row_count(sid: str, version_id: str) -> int:
         return next(v["row_count"] for v in manifests[sid]["versions"] if v["id"] == version_id)
 
-    together_rows, each_rows, agreeing = [], [], []
+    together_rows, each_rows, agreeing, order_rows = [], [], [], []
     for key in sorted(grouped):
         sid, from_, to = key
         cells = grouped[key]
         label = f"`{sid}` {from_}→{to}"
 
-        outcomes = [cells[("read_versions_together", a, m)][0] for a, m in modes["read_versions_together"]]
+        outcomes = [_in_order(cells[("read_versions_together", a, m)], [from_, to]) for a, m in modes["read_versions_together"]]
         alone = {
             a: {r["inputs"][0]: r for r in cells[("read_each_version", a, m)]} for a, m in modes["read_each_version"]
         }
@@ -166,6 +184,23 @@ def render(root: Path, results_dir: Path) -> str:
             together_rows.append([label, *(_cell(r, focus, rows, rel) for r, rel in zip(outcomes, relations))])
         else:
             agreeing.append(label)
+
+        reversed_ = [_in_order(cells[("read_versions_together", a, m)], [to, from_]) for a, m in modes["read_versions_together"]]
+        if all(r is not None for r in reversed_):
+            pairs_by_order = list(zip(outcomes, reversed_))
+            changed = [_order_rule(f, alone[f["adapter"]]) != _order_rule(r, alone[r["adapter"]]) for f, r in pairs_by_order]
+            if any(changed):
+                focus = _focus(transition(key)) or _columns_of_disagreement([r for pair in pairs_by_order for r in pair])
+                order_rows.append([
+                    label,
+                    *(
+                        f"`{from_}, {to}`: {_cell(f, focus, rows, _relative(f, alone[f['adapter']]))}; "
+                        f"`{to}, {from_}`: {_cell(r, focus, rows, _relative(r, alone[r['adapter']]))}"
+                        if c
+                        else "-"
+                        for (f, r), c in zip(pairs_by_order, changed)
+                    ),
+                ])
 
         pairs = [cells[("read_each_version", a, m)] for a, m in modes["read_each_version"]]
         if len({tuple(_signature(r) for r in pair) for pair in pairs}) > 1:
@@ -197,6 +232,21 @@ def render(root: Path, results_dir: Path) -> str:
         "",
         f"Every adapter and mode reads the other {len(agreeing)} alike: {', '.join(agreeing) or '-'}.",
         "",
+    ]
+    if order_rows:
+        out += [
+            f"**The same two versions in the other order.** Each two-version call also runs with the files "
+            f"swapped. A mode that takes the schema of whichever file comes first follows one rule in both "
+            f"orders; the {len(order_rows)} of {total} transitions below are the ones where some mode does not: "
+            "a different position wins, the call fails in one order only, the row count changes, or a result "
+            "like neither file has a different schema. `-`: the same rule in both orders. Marks as above.",
+            "",
+            *_table(
+                ["transition", *(f"{ENGINE_NAMES.get(a, a)} `{m}`" for a, m in modes["read_versions_together"])], order_rows
+            ),
+            "",
+        ]
+    out += [
         f"**Reading each version on its own** (`from` → `to`). Adapters disagree on {len(each_rows)} of "
         f"{total} transitions; here the differences are in how each engine represents a single file.",
         "",
@@ -206,22 +256,42 @@ def render(root: Path, results_dir: Path) -> str:
     table_adapters = [a for a, rs in by_adapter.items() if any(r["operation"] == "append_to_table" for r in rs)]
     for adapter in table_adapters:
         adapter_modes = [mode for a, mode in modes["append_to_table"] if a == adapter]
+        swapped = any(
+            _in_order(grouped[key][("append_to_table", adapter, mode)], [key[2], key[1]]) is not None
+            for key in grouped
+            for mode in adapter_modes
+        )
+        columns = [(mode, False) for mode in adapter_modes] + ([(mode, True) for mode in adapter_modes] if swapped else [])
         write_rows = []
-        successes = {mode: 0 for mode in adapter_modes}
+        successes = {column: 0 for column in columns}
         for key in sorted(grouped):
             sid, from_, to = key
             focus = _focus(transition(key))
-            records_for_modes = [grouped[key][("append_to_table", adapter, mode)][0] for mode in adapter_modes]
-            for mode, record in zip(adapter_modes, records_for_modes, strict=True):
-                successes[mode] += record["status"] == "success"
-            write_rows.append([f"`{sid}` {from_}→{to}", *(_table_write_cell(record, focus) for record in records_for_modes)])
-        counts = "; ".join(f"`{mode}` {successes[mode]}/{total} succeeded" for mode in adapter_modes)
+            records_for_columns = [
+                _in_order(grouped[key][("append_to_table", adapter, mode)], [to, from_] if rev else [from_, to])
+                for mode, rev in columns
+            ]
+            for column, record in zip(columns, records_for_columns, strict=True):
+                successes[column] += record["status"] == "success"
+            write_rows.append([f"`{sid}` {from_}→{to}", *(_table_write_cell(record, focus) for record in records_for_columns)])
+        name = ENGINE_NAMES.get(adapter, adapter)
+        counts = "; ".join(
+            f"`{mode}`{' reversed' if rev else ''} {successes[(mode, rev)]}/{total} succeeded" for mode, rev in columns
+        )
+        reversed_note = (
+            " Reversed columns create the table from `to` and bring in `from`: the older version written to a "
+            "table that already has the newer one."
+            if swapped
+            else ""
+        )
         out.extend([
-            f"**{ENGINE_NAMES.get(adapter, adapter)} table writes.** Each call creates a fresh table from `from`; "
+            f"**{name} table writes.** Each call creates a fresh table from `from`; "
             "the mode then brings in `to`. Cells show the final row count and touched top-level field types, "
-            f"or the error class. {counts}.",
+            f"or the error class.{reversed_note} {counts}.",
             "",
-            *_table(["transition", *(f"{ENGINE_NAMES.get(adapter, adapter)} `{mode}`" for mode in adapter_modes)], write_rows),
+            *_table(
+                ["transition", *(f"{name} `{mode}`{' reversed' if rev else ''}" for mode, rev in columns)], write_rows
+            ),
             "",
         ])
     out.append(END)
