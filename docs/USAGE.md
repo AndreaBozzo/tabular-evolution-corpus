@@ -60,7 +60,7 @@ for manifest_path in sorted(pathlib.Path("fixtures").glob("*/scenario.json")):
     files = [manifest_path.parent / v["file"] for v in scenario["versions"]]
     for t in scenario["transitions"]:
         result = my_system.evolve(files[int(t["from"][1:])], files[int(t["to"][1:])])
-        record(scenario["scenario_id"], t, result)   # what *your* system did
+        record(scenario["scenario_id"], t, result)  # what *your* system did
 ```
 
 Typical uses:

@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 
 import pytest
-
 from conftest import ROOT, SCENARIO_IDS
+
 from tabular_evolution.cli import main
 
 

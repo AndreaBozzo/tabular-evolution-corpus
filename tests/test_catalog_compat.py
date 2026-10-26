@@ -7,8 +7,8 @@ These engines are not dependencies of the corpus. Install them with
 from __future__ import annotations
 
 import pytest
-
 from conftest import ROOT, SCENARIO_IDS
+
 from tabular_evolution.catalog import CATALOG_PATH
 
 CATALOG = (ROOT / CATALOG_PATH).as_posix()

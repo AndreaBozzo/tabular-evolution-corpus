@@ -20,7 +20,7 @@ Dataset = "https://huggingface.co/datasets/AndreaBozzo/tabular-evolution-corpus"
 tec = "tabular_evolution.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.15", "ty>=0.0.91"]
 compat = ["duckdb>=1.1", "polars>=1.10", "pandas>=2.2"]
 # Engines driven by adapters/ (not dependencies of the corpus package).
 adapters = [
@@ -40,3 +40,22 @@ packages = ["src/tabular_evolution"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]  # adapters/ lives next to src/, outside the package
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+# The formatter owns line width; what it cannot wrap is docstring tables and long strings.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Engine imports follow pytest.importorskip, so a missing engine skips instead of failing.
+"tests/*" = ["E402"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["pyarrow.int8"]
+
+[tool.ty.environment]
+python-version = "3.11"

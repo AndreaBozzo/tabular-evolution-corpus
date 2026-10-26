@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from conftest import ROOT
+
 from tabular_evolution.generate import generate_all
 from tabular_evolution.release import SUMS_PATH, compare_trees, installed_writer, render_sums, same_writer
 

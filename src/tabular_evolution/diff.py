@@ -77,19 +77,31 @@ def _diff_level(old: list[pa.Field], new: list[pa.Field], old_prefix: str, prefi
     for f in old:
         if id(f) not in matched_old:
             out.append(
-                {"kind": "remove_field", "path": old_prefix + f.name, "type": type_string(f.type), "nullable": f.nullable}
+                {
+                    "kind": "remove_field",
+                    "path": old_prefix + f.name,
+                    "type": type_string(f.type),
+                    "nullable": f.nullable,
+                }
             )
 
     for a, b in pairs:
         if a.name != b.name:
             out.append(
-                {"kind": "rename_field", "path": prefix + b.name, "old_path": old_prefix + a.name, "field_id": field_id(b)}
+                {
+                    "kind": "rename_field",
+                    "path": prefix + b.name,
+                    "old_path": old_prefix + a.name,
+                    "field_id": field_id(b),
+                }
             )
         out.extend(_diff_pair(a, b, old_prefix + a.name, prefix + b.name))
 
     for f in new:
         if id(f) not in matched_new:
-            out.append({"kind": "add_field", "path": prefix + f.name, "type": type_string(f.type), "nullable": f.nullable})
+            out.append(
+                {"kind": "add_field", "path": prefix + f.name, "type": type_string(f.type), "nullable": f.nullable}
+            )
 
     old_order = [a.name for a, _ in pairs]
     new_position = {id(b): i for i, b in enumerate(new)}

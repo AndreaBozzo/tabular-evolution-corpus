@@ -35,6 +35,7 @@ and cast options.
 from __future__ import annotations
 
 import polars as pl
+from polars.datatypes import DataTypeClass
 
 from .base import Adapter, Observation, ResultField
 
@@ -58,7 +59,7 @@ _SIMPLE = {
 }
 
 
-def corpus_type(t: pl.DataType) -> str | None:
+def corpus_type(t: pl.DataType | DataTypeClass) -> str | None:
     for simple, name in _SIMPLE.items():
         if t == simple:
             return name

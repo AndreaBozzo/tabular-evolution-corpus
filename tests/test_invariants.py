@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pyarrow as pa
 import pytest
-
 from conftest import FIXTURES, SCENARIO_IDS, load
+
 from tabular_evolution.generate import write_parquet
 from tabular_evolution.models import RELATIONS
 from tabular_evolution.validate import (
@@ -172,7 +172,10 @@ def test_tampered_value_is_detected(tmp_path: Path) -> None:
     original = LoadedScenario.load(directory).table("v1")
     values = original.column("quantity").to_pylist()
     values[0] += 1
-    write_parquet(original.set_column(1, original.schema.field("quantity"), pa.array(values, pa.int64())), directory / "v1.parquet")
+    write_parquet(
+        original.set_column(1, original.schema.field("quantity"), pa.array(values, pa.int64())),
+        directory / "v1.parquet",
+    )
 
     scenario = LoadedScenario.load(directory)
     assert any("fingerprint" in p for p in check_versions(scenario))

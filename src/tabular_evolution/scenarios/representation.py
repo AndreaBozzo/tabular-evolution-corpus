@@ -91,7 +91,9 @@ def string_to_dictionary() -> Scenario:
             ),
         ],
         transitions=[
-            Transition("v0", "v1", [change_type("status", "string", STATUS_DICT)], same_rows(parquet_schema_preserved=True))
+            Transition(
+                "v0", "v1", [change_type("status", "string", STATUS_DICT)], same_rows(parquet_schema_preserved=True)
+            )
         ],
     )
 

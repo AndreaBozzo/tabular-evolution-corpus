@@ -82,7 +82,11 @@ def int64_to_float64() -> Scenario:
         ),
         ["change-type", "integer", "floating-point", "precision-loss", "numeric-extremes"],
         "measurement",
-        (pa.int64(), "int64", [0, -1, 9007199254740992, 9007199254740993, 9223372036854775807, -9223372036854775808, None]),
+        (
+            pa.int64(),
+            "int64",
+            [0, -1, 9007199254740992, 9007199254740993, 9223372036854775807, -9223372036854775808, None],
+        ),
         (
             pa.float64(),
             "double",
@@ -162,7 +166,11 @@ def decimal_scale_increase() -> Scenario:
         ),
         ["change-type", "decimal", "scale"],
         "price",
-        (pa.decimal128(9, 2), "decimal128(9, 2)", [D("0.00"), D("-0.01"), D("1.20"), D("12345.67"), D("-99999.99"), None]),
+        (
+            pa.decimal128(9, 2),
+            "decimal128(9, 2)",
+            [D("0.00"), D("-0.01"), D("1.20"), D("12345.67"), D("-99999.99"), None],
+        ),
         (
             pa.decimal128(9, 4),
             "decimal128(9, 4)",

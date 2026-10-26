@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from conftest import ROOT
+from test_adapters import ENGINE_MODULE
 
 from adapters import REGISTRY, load_adapter
 from adapters.report import _order_dependent, _relative, latest_results, main
 from adapters.runner import CorpusIdentity, check_record, current_platform, observe, read_results, result_validator
-from conftest import ROOT
 from tabular_evolution import __version__
-from test_adapters import ENGINE_MODULE
 
 RESULTS = latest_results(ROOT)
 FILES = sorted(RESULTS.glob("*.jsonl")) if RESULTS else []
@@ -31,7 +31,9 @@ def test_committed_records_are_valid_and_from_one_run(path: Path) -> None:
     records = read_results(path)
     validator = result_validator(ROOT)
     assert records and all(check_record(r, validator) == [] for r in records)
-    run = {(r["corpus_version"], r["corpus_revision"], r["adapter"], r["adapter_version"], r["platform"]) for r in records}
+    run = {
+        (r["corpus_version"], r["corpus_revision"], r["adapter"], r["adapter_version"], r["platform"]) for r in records
+    }
     assert len(run) == 1
     assert records[0]["corpus_version"] == path.parent.name
     assert records[0]["adapter"] == path.stem
@@ -59,7 +61,7 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> No
     fresh = [{**r, "platform": first["platform"]} for r in observe(ROOT, adapter, identity)]
     differing = [
         (old["scenario_id"], old["from"], old["to"], old["operation"], old["mode"], old["inputs"])
-        for old, new in zip(records, fresh)
+        for old, new in zip(records, fresh, strict=False)
         if old != new
     ]
     assert len(fresh) == len(records)
@@ -103,7 +105,10 @@ def record(schema: list[tuple[str, str]] | None, inputs: list[str], rows: int = 
     ],
 )
 def test_combined_reads_are_classified_against_the_same_engine(combined: Any, expected: str) -> None:
-    alone = {"v0": record([("id", "int64"), ("x", "int32")], ["v0"]), "v1": record([("id", "int64"), ("x", "int64")], ["v1"])}
+    alone = {
+        "v0": record([("id", "int64"), ("x", "int32")], ["v0"]),
+        "v1": record([("id", "int64"), ("x", "int64")], ["v1"]),
+    }
     assert _relative(record(combined, ["v0", "v1"]), alone) == expected
 
 
@@ -113,7 +118,10 @@ def test_a_combined_read_like_two_identical_versions_is_both() -> None:
     assert _relative(record(same, ["v0", "v1"]), alone) == "both"  # nullability is not compared
 
 
-ALONE = {"v0": record([("id", "int64"), ("x", "int32")], ["v0"]), "v1": record([("id", "int64"), ("x", "int64")], ["v1"])}
+ALONE = {
+    "v0": record([("id", "int64"), ("x", "int32")], ["v0"]),
+    "v1": record([("id", "int64"), ("x", "int64")], ["v1"]),
+}
 V0, V1 = [("id", "int64"), ("x", "int32")], [("id", "int64"), ("x", "int64")]
 
 

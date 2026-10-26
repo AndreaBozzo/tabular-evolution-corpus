@@ -87,7 +87,16 @@ class DataprofAdapter(Adapter):
                 baseline = Path(temp) / "baseline.json"
                 dataprof.profile(first).save(str(baseline))
                 done = subprocess.run(
-                    [sys.executable, "-m", "dataprof.check", second, "--baseline", str(baseline), "--json", *CHECK_FLAGS[mode]],
+                    [
+                        sys.executable,
+                        "-m",
+                        "dataprof.check",
+                        second,
+                        "--baseline",
+                        str(baseline),
+                        "--json",
+                        *CHECK_FLAGS[mode],
+                    ],
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -115,5 +124,7 @@ class DataprofAdapter(Adapter):
             ]
             return Observation(None, None, column_profiles=profiles)
         findings = [_finding(check, check["status"]) for check in result.gate["checks"] if check["status"] != "passed"]
-        findings += [_finding(item, "diagnostic") for item in (result.gate.get("baseline") or {}).get("diagnostics", [])]
+        findings += [
+            _finding(item, "diagnostic") for item in (result.gate.get("baseline") or {}).get("diagnostics", [])
+        ]
         return Observation(None, None, exit_code=result.exit_code, findings=findings)

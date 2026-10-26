@@ -19,7 +19,7 @@ def table(fields: list[pa.Field], columns: list[Any]) -> pa.Table:
     a ready-made Arrow array."""
     if len(fields) != len(columns):
         raise ValueError("one column per field")
-    arrays = [c if isinstance(c, pa.Array) else pa.array(c, type=f.type) for f, c in zip(fields, columns)]
+    arrays = [c if isinstance(c, pa.Array) else pa.array(c, type=f.type) for f, c in zip(fields, columns, strict=True)]
     return pa.Table.from_arrays(arrays, schema=pa.schema(fields))
 
 

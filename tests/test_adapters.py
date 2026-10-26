@@ -8,18 +8,25 @@ dependency group; their tests skip when the engine is absent.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import cache
-from typing import Any, Callable
+from typing import Any
 
 import pytest
+from conftest import ROOT, SCENARIO_IDS, load
 
 from adapters import REGISTRY, load_adapter
 from adapters.base import OPERATIONS, SINGLE_VERSION_OPERATIONS
 from adapters.runner import CorpusIdentity, observe
-from conftest import ROOT, SCENARIO_IDS, load
 
 IDENTITY = CorpusIdentity("0.1.0", "0" * 40)
-ENGINE_MODULE = {"dataprof": "dataprof", "deltalake": "deltalake", "duckdb": "duckdb", "polars": "polars", "pyarrow_dataset": "pyarrow"}
+ENGINE_MODULE = {
+    "dataprof": "dataprof",
+    "deltalake": "deltalake",
+    "duckdb": "duckdb",
+    "polars": "polars",
+    "pyarrow_dataset": "pyarrow",
+}
 
 
 @cache
@@ -172,7 +179,10 @@ def test_first_file_modes_return_the_first_file_columns(name: str, mode: str) ->
     ]
     assert together
     for r in together:
-        assert names(r["result_schema"]) == names(declared(r["scenario_id"], r["inputs"][0])), (r["scenario_id"], r["inputs"])
+        assert names(r["result_schema"]) == names(declared(r["scenario_id"], r["inputs"][0])), (
+            r["scenario_id"],
+            r["inputs"],
+        )
 
 
 # ---------------------------------------------------------------- Polars

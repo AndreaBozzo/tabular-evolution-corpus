@@ -6,13 +6,13 @@ import copy
 from typing import Any
 
 import pytest
+from conftest import ROOT
 from jsonschema import Draft202012Validator
+from test_manifest_schema import POLICY_WORDS
 
 from adapters.base import OPERATIONS
 from adapters.runner import check_record
-from conftest import ROOT
 from tabular_evolution.validate import load_json
-from test_manifest_schema import POLICY_WORDS
 
 SCHEMA = load_json(ROOT / "schema" / "result.schema.json")
 VALIDATOR = Draft202012Validator(SCHEMA)
@@ -93,7 +93,9 @@ def test_phase_two_success_outcomes_validate() -> None:
         inputs=["v1"],
         result_schema=None,
         row_count=None,
-        column_profiles=[{"name": "event_time", "inferred_type": "timestamp[us]", "native_type": "Datetime", "null_ratio": 0.2}],
+        column_profiles=[
+            {"name": "event_time", "inferred_type": "timestamp[us]", "native_type": "Datetime", "null_ratio": 0.2}
+        ],
     )
     for record in (append, contract, profile):
         assert list(VALIDATOR.iter_errors(record)) == []
@@ -101,7 +103,11 @@ def test_phase_two_success_outcomes_validate() -> None:
 
 
 def test_phase_two_errors_validate_without_success_outputs() -> None:
-    for operation, inputs in (("append_to_table", ["v0", "v1"]), ("check_against_contract", ["v0", "v1"]), ("profile_each_version", ["v1"])):
+    for operation, inputs in (
+        ("append_to_table", ["v0", "v1"]),
+        ("check_against_contract", ["v0", "v1"]),
+        ("profile_each_version", ["v1"]),
+    ):
         record = with_changes(ERROR, operation=operation, inputs=inputs)
         assert list(VALIDATOR.iter_errors(record)) == []
 
@@ -113,7 +119,14 @@ def test_nonfinite_profile_ratio_is_rejected_as_non_json() -> None:
         inputs=["v1"],
         result_schema=None,
         row_count=None,
-        column_profiles=[{"name": "event_time", "inferred_type": "timestamp[us]", "native_type": "Datetime", "null_ratio": float("nan")}],
+        column_profiles=[
+            {
+                "name": "event_time",
+                "inferred_type": "timestamp[us]",
+                "native_type": "Datetime",
+                "null_ratio": float("nan"),
+            }
+        ],
     )
     assert list(VALIDATOR.iter_errors(record)) == []  # jsonschema treats NaN as a number
     assert any("not strict JSON" in problem for problem in check_record(record, VALIDATOR))
@@ -138,8 +151,22 @@ def test_nonfinite_profile_ratio_is_rejected_as_non_json() -> None:
         with_changes(SUCCESS, operation="profile_each_version", inputs=["v0", "v1"]),
         with_changes(SUCCESS, operation="check_against_contract", result_schema=None, row_count=None, exit_code=-1),
         with_changes(SUCCESS, operation="profile_each_version", inputs=["v0"], result_schema=None, row_count=None),
-        with_changes(SUCCESS, operation="check_against_contract", result_schema=None, row_count=None, exit_code=1, column_profiles=[]),
-        with_changes(SUCCESS, operation="profile_each_version", inputs=["v0"], result_schema=None, row_count=None, column_profiles=[{"name": "x", "inferred_type": "int64", "native_type": "Int64", "null_ratio": 1.2}]),
+        with_changes(
+            SUCCESS,
+            operation="check_against_contract",
+            result_schema=None,
+            row_count=None,
+            exit_code=1,
+            column_profiles=[],
+        ),
+        with_changes(
+            SUCCESS,
+            operation="profile_each_version",
+            inputs=["v0"],
+            result_schema=None,
+            row_count=None,
+            column_profiles=[{"name": "x", "inferred_type": "int64", "native_type": "Int64", "null_ratio": 1.2}],
+        ),
         with_changes(SUCCESS, operation="read_union"),
         with_changes(SUCCESS, mode="union-by-name"),
         with_changes(SUCCESS, corpus_revision="6d928a8"),

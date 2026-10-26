@@ -10,9 +10,10 @@ import pytest
 
 dataprof = pytest.importorskip("dataprof")
 
+from conftest import ROOT
+
 from adapters import dataprof_adapter
 from adapters.runner import CorpusIdentity, observe
-from conftest import ROOT
 
 IDENTITY = CorpusIdentity("0.2.0", "0" * 40)
 
@@ -52,7 +53,9 @@ def test_a_type_change_is_a_diagnostic_beside_a_zero_exit_code() -> None:
 def test_a_baseline_without_rows_leaves_the_null_increase_unevaluated() -> None:
     record = check("empty_then_populated", "closed_schema_null_increase", ["v0", "v1"])
     assert record["exit_code"] == 2
-    assert record["findings"] and all(f.startswith("not_evaluated: max_null_percentage_increase") for f in record["findings"])
+    assert record["findings"] and all(
+        f.startswith("not_evaluated: max_null_percentage_increase") for f in record["findings"]
+    )
 
 
 def test_profiles_record_native_types_and_null_ratios() -> None:
@@ -69,12 +72,16 @@ def test_profiles_record_native_types_and_null_ratios() -> None:
 def test_a_check_the_tool_cannot_run_is_an_error(tmp_path: Path) -> None:
     adapter = dataprof_adapter.DataprofAdapter()
     with pytest.raises(dataprof_adapter.CheckToolError, match="missing.parquet"):
-        adapter.read("check_against_contract", "closed_schema", [str(ROOT / "fixtures/reorder_columns/v0.parquet"), str(tmp_path / "missing.parquet")])
+        adapter.read(
+            "check_against_contract",
+            "closed_schema",
+            [str(ROOT / "fixtures/reorder_columns/v0.parquet"), str(tmp_path / "missing.parquet")],
+        )
 
 
 def test_each_check_cleans_up_its_baseline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def temporary(*args: object, **kwargs: object) -> TemporaryDirectory[str]:
-        return TemporaryDirectory(*args, dir=tmp_path, **kwargs)
+    def temporary(prefix: str) -> TemporaryDirectory[str]:
+        return TemporaryDirectory(prefix=prefix, dir=tmp_path)
 
     monkeypatch.setattr(dataprof_adapter, "TemporaryDirectory", temporary)
     records("reorder_columns")

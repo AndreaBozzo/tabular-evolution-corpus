@@ -10,13 +10,16 @@ import pytest
 
 deltalake = pytest.importorskip("deltalake")
 
+from conftest import ROOT
+
 from adapters import deltalake_adapter
 from adapters.runner import CorpusIdentity, observe
-from conftest import ROOT
 
 
 def test_additive_change_distinguishes_append_merge_and_overwrite() -> None:
-    records = observe(ROOT, deltalake_adapter.DeltaLakeAdapter(), CorpusIdentity("0.2.0", "0" * 40), ["add_nullable_int64_column"])
+    records = observe(
+        ROOT, deltalake_adapter.DeltaLakeAdapter(), CorpusIdentity("0.2.0", "0" * 40), ["add_nullable_int64_column"]
+    )
     by_mode = {record["mode"]: record for record in records if record["inputs"] == ["v0", "v1"]}
     assert by_mode["default"]["status"] == "error"
     assert by_mode["merge"]["status"] == "success"
@@ -28,11 +31,13 @@ def test_additive_change_distinguishes_append_merge_and_overwrite() -> None:
 
 
 def test_each_call_cleans_up_its_temporary_table(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def temporary_table(*args: object, **kwargs: object) -> TemporaryDirectory[str]:
-        return TemporaryDirectory(*args, dir=tmp_path, **kwargs)
+    def temporary_table(prefix: str) -> TemporaryDirectory[str]:
+        return TemporaryDirectory(prefix=prefix, dir=tmp_path)
 
     monkeypatch.setattr(deltalake_adapter, "TemporaryDirectory", temporary_table)
-    observe(ROOT, deltalake_adapter.DeltaLakeAdapter(), CorpusIdentity("0.2.0", "0" * 40), ["add_nullable_int64_column"])
+    observe(
+        ROOT, deltalake_adapter.DeltaLakeAdapter(), CorpusIdentity("0.2.0", "0" * 40), ["add_nullable_int64_column"]
+    )
     assert list(tmp_path.iterdir()) == []
 
 

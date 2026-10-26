@@ -10,13 +10,15 @@ from __future__ import annotations
 import json
 import math
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pyarrow as pa
 from jsonschema import Draft202012Validator
+from jsonschema.protocols import Validator
 
 from .diff import diff_schemas, mutation_key, renames
 from .generate import MANIFEST
@@ -30,7 +32,7 @@ def load_json(path: Path) -> Any:
     return json.loads(path.read_bytes().decode("utf-8"))
 
 
-def manifest_validator(root: Path) -> Draft202012Validator:
+def manifest_validator(root: Path) -> Validator:
     schema = load_json(root / SCHEMA_PATH)
     Draft202012Validator.check_schema(schema)
     return Draft202012Validator(schema)
@@ -43,7 +45,7 @@ class LoadedScenario:
     _tables: dict[str, pa.Table] = field(default_factory=dict)
 
     @classmethod
-    def load(cls, directory: Path) -> "LoadedScenario":
+    def load(cls, directory: Path) -> LoadedScenario:
         return cls(directory, load_json(directory / MANIFEST))
 
     @property
@@ -66,10 +68,12 @@ class LoadedScenario:
 # ---------------------------------------------------------------- manifest
 
 
-def check_manifest(scenario: LoadedScenario, validator: Draft202012Validator) -> list[str]:
+def check_manifest(scenario: LoadedScenario, validator: Validator) -> list[str]:
     """JSON Schema conformance plus the cross-field rules a schema cannot express."""
     m = scenario.manifest
-    problems = [f"schema: {'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}" for e in validator.iter_errors(m)]
+    problems = [
+        f"schema: {'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}" for e in validator.iter_errors(m)
+    ]
     if problems:
         return problems
 
@@ -84,7 +88,7 @@ def check_manifest(scenario: LoadedScenario, validator: Draft202012Validator) ->
         problems.append(f"version files are not unique: {files}")
 
     pairs = [(t["from"], t["to"]) for t in m["transitions"]]
-    if pairs != list(zip(ids, ids[1:])):
+    if pairs != list(zip(ids, ids[1:], strict=False)):
         problems.append(f"transitions must cover consecutive versions in order, got {pairs}")
 
     for v in m["versions"]:
@@ -162,7 +166,10 @@ def row_keys(table: pa.Table, identity: list[str]) -> list[str | None]:
     if not identity:
         return [canonical_json(["position", i]) for i in range(table.num_rows)]
     columns = [column_values(table.column(k)) for k in identity]
-    return [None if any(v is None for v in row) else canonical_json([encode(v) for v in row]) for row in zip(*columns)]
+    return [
+        None if any(v is None for v in row) else canonical_json([encode(v) for v in row])
+        for row in zip(*columns, strict=True)
+    ]
 
 
 # ---------------------------------------------------------------- transitions
@@ -171,8 +178,9 @@ def row_keys(table: pa.Table, identity: list[str]) -> list[str | None]:
 def _check_relation(relation: str, pairs: list[tuple[Any, Any]]) -> bool:
     both_null = lambda a, b: a is None and b is None  # noqa: E731
     rules: dict[str, Callable[[], bool]] = {
-        "nulls_filled": lambda: all(a is None or same(a, b) for a, b in pairs)
-        and any(a is None and b is not None for a, b in pairs),
+        "nulls_filled": lambda: (
+            all(a is None or same(a, b) for a, b in pairs) and any(a is None and b is not None for a, b in pairs)
+        ),
         "nulled": lambda: all(b is None for _, b in pairs) and any(a is not None for a, _ in pairs),
         "truncated_toward_zero": lambda: all(
             both_null(a, b)
@@ -319,7 +327,7 @@ def scenario_dirs(fixtures_dir: Path) -> list[Path]:
     return sorted(d for d in fixtures_dir.iterdir() if (d / MANIFEST).is_file())
 
 
-def check_scenario(scenario: LoadedScenario, validator: Draft202012Validator) -> list[str]:
+def check_scenario(scenario: LoadedScenario, validator: Validator) -> list[str]:
     problems = check_manifest(scenario, validator)
     if problems:
         return problems

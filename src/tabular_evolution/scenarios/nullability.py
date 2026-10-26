@@ -133,7 +133,9 @@ def column_becomes_all_null() -> Scenario:
             ),
         ],
         transitions=[
-            Transition("v0", "v1", [], same_rows(parquet_schema_preserved=True, value_changes=(("discount", "nulled"),)))
+            Transition(
+                "v0", "v1", [], same_rows(parquet_schema_preserved=True, value_changes=(("discount", "nulled"),))
+            )
         ],
     )
 

@@ -43,7 +43,7 @@ def test_same(a: object, b: object, equal: bool) -> None:
 def test_timestamps_compare_by_instant_across_units() -> None:
     ms = column_values(pa.array([1, None], pa.timestamp("ms", tz="UTC")))
     us = column_values(pa.array([1000, None], pa.timestamp("us", tz="UTC")))
-    assert all(same(a, b) for a, b in zip(ms, us))
+    assert all(same(a, b) for a, b in zip(ms, us, strict=True))
 
 
 def test_dictionary_values_are_decoded() -> None:

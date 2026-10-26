@@ -6,9 +6,9 @@ import json
 import re
 
 import pytest
+from conftest import FIXTURES, ROOT, SCENARIO_IDS, load
 from jsonschema import Draft202012Validator
 
-from conftest import FIXTURES, ROOT, SCENARIO_IDS, load
 from tabular_evolution.models import CATEGORIES, RELATIONS
 from tabular_evolution.scenarios import all_scenarios
 from tabular_evolution.validate import check_manifest, load_json

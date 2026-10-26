@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from jsonschema.protocols import Validator
 
 from tabular_evolution import __version__
 from tabular_evolution.generate import MANIFEST
@@ -103,7 +104,11 @@ def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> d
             "notes": [message] if message else [],
         }
     seen = adapter.describe(result)  # an exception here is an adapter bug: let it stop the run
-    unmapped = [f"{f.name}: {f.native_type} has no equivalent in the corpus type vocabulary" for f in seen.fields or [] if f.type is None]
+    unmapped = [
+        f"{f.name}: {f.native_type} has no equivalent in the corpus type vocabulary"
+        for f in seen.fields or []
+        if f.type is None
+    ]
     unmapped += [
         f"{p.name}: {p.native_type} has no equivalent in the corpus type vocabulary"
         for p in seen.column_profiles or []
@@ -121,11 +126,13 @@ def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> d
     }
 
 
-def check_record(record: dict[str, Any], validator: Draft202012Validator) -> list[str]:
+def check_record(record: dict[str, Any], validator: Validator) -> list[str]:
     """Schema conformance plus rules JSON Schema cannot express: inputs are
     the transition's own versions, in one of the orders the runner uses, and
     the record is strict JSON."""
-    problems = [f"{'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}" for e in validator.iter_errors(record)]
+    problems = [
+        f"{'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}" for e in validator.iter_errors(record)
+    ]
     if not problems:
         try:
             json.dumps(record, allow_nan=False)
@@ -137,13 +144,15 @@ def check_record(record: dict[str, Any], validator: Draft202012Validator) -> lis
     return problems
 
 
-def result_validator(root: Path) -> Draft202012Validator:
+def result_validator(root: Path) -> Validator:
     schema = load_json(root / RESULT_SCHEMA)
     Draft202012Validator.check_schema(schema)
     return Draft202012Validator(schema)
 
 
-def observe(root: Path, adapter: Adapter, identity: CorpusIdentity, only: list[str] | None = None) -> list[dict[str, Any]]:
+def observe(
+    root: Path, adapter: Adapter, identity: CorpusIdentity, only: list[str] | None = None
+) -> list[dict[str, Any]]:
     """Every declared (operation, mode) of `adapter` on every transition, in
     corpus order. Each record is validated; an invalid one is an adapter bug."""
     unknown = set(adapter.modes) - set(OPERATIONS)
@@ -221,7 +230,9 @@ def main(argv: list[str] | None = None) -> int:
         records = observe(root, adapter, identity)
         path = write_results(results_path(root, adapter.name, identity.version), records)
         errors = sum(r["status"] == "error" for r in records)
-        print(f"{name} {adapter.version}: {len(records)} records ({errors} errors) -> {path.relative_to(root).as_posix()}")
+        print(
+            f"{name} {adapter.version}: {len(records)} records ({errors} errors) -> {path.relative_to(root).as_posix()}"
+        )
     return 0
 
 

@@ -39,6 +39,18 @@ jobs:
         if: runner.os == 'Linux'
         run: sha256sum -c SHA256SUMS --quiet
 
+  lint:
+    name: ruff and ty
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0  # no moving major tag after v7
+      # ty resolves the engines the adapters and compat tests import.
+      - run: uv sync --locked --group adapters --group compat
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run ty check
+
   catalog-readers:
     name: catalog loads in pandas, DuckDB and Polars
     runs-on: ubuntu-latest

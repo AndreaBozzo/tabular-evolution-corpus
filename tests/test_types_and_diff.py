@@ -27,7 +27,10 @@ GOLDEN = [
     (pa.timestamp("us"), "timestamp[us]"),
     (pa.timestamp("us", tz="UTC"), "timestamp[us, tz=UTC]"),
     (pa.dictionary(pa.int8(), pa.string()), "dictionary<values=string, indices=int8, ordered=0>"),
-    (pa.struct([pa.field("a", pa.int64(), nullable=False), pa.field("b", pa.string())]), "struct<a: int64 not null, b: string>"),
+    (
+        pa.struct([pa.field("a", pa.int64(), nullable=False), pa.field("b", pa.string())]),
+        "struct<a: int64 not null, b: string>",
+    ),
     (pa.list_(pa.int32()), "list<int32>"),
     (pa.list_(pa.field("element", pa.int32())), "list<int32>"),
     (pa.list_(pa.field("item", pa.int32(), nullable=False)), "list<int32 not null>"),
@@ -164,7 +167,10 @@ def test_rename_inside_a_renamed_struct(tmp_path) -> None:
 
     write_parquet(build("a", "x", 1), tmp_path / "v0.parquet")
     write_parquet(build("b", "y", 2), tmp_path / "v1.parquet")
-    manifest = {"row_identity": ["id"], "versions": [{"id": "v0", "file": "v0.parquet"}, {"id": "v1", "file": "v1.parquet"}]}
+    manifest = {
+        "row_identity": ["id"],
+        "versions": [{"id": "v0", "file": "v0.parquet"}, {"id": "v1", "file": "v1.parquet"}],
+    }
     seen = observe_transition(LoadedScenario(tmp_path, manifest), "v0", "v1")
     assert [m["kind"] for m in seen["mutations"]] == ["rename_field", "rename_field"]
     assert set(seen["value_changes"]) == {"b.y"}

@@ -91,7 +91,7 @@ def same(a: Any, b: Any) -> bool:
     if isinstance(a, dict) and isinstance(b, dict):
         return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
     if isinstance(a, list) and isinstance(b, list):
-        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
+        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
     if type(a) is not type(b):
         return False
     return a == b
@@ -167,7 +167,12 @@ def flatten(table: pa.Table) -> dict[str, list[Any]]:
         if pat.is_struct(t):
             out[path] = [_map(lambda _: True, v, depth) for v in values]
             for child in t:
-                walk(f"{path}.{child.name}", child.type, [_map(lambda x, n=child.name: x[n], v, depth) for v in values], depth)
+                walk(
+                    f"{path}.{child.name}",
+                    child.type,
+                    [_map(lambda x, n=child.name: x[n], v, depth) for v in values],
+                    depth,
+                )
         elif pat.is_map(t):
             out[path] = [_map(len, v, depth) for v in values]
             for key in ("key", "value"):

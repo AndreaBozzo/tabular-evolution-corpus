@@ -54,9 +54,7 @@ def reorder_columns() -> Scenario:
             Version("v0", lambda: table([fields[n] for n in old], [values[n] for n in old]), [decl[n] for n in old]),
             Version("v1", lambda: table([fields[n] for n in new], [values[n] for n in new]), [decl[n] for n in new]),
         ],
-        transitions=[
-            Transition("v0", "v1", [reorder_fields("", old, new)], same_rows(parquet_schema_preserved=False))
-        ],
+        transitions=[Transition("v0", "v1", [reorder_fields("", old, new)], same_rows(parquet_schema_preserved=False))],
     )
 
 
@@ -113,7 +111,9 @@ def rename_column_with_field_id() -> Scenario:
 
 
 ADDRESS_2 = pa.struct([pa.field("street", pa.string()), pa.field("city", pa.string())])
-ADDRESS_3 = pa.struct([pa.field("street", pa.string()), pa.field("city", pa.string()), pa.field("postcode", pa.string())])
+ADDRESS_3 = pa.struct(
+    [pa.field("street", pa.string()), pa.field("city", pa.string()), pa.field("postcode", pa.string())]
+)
 ADDRESS_2_TYPE = "struct<street: string, city: string>"
 ADDRESS_3_TYPE = "struct<street: string, city: string, postcode: string>"
 ADDRESSES_2 = [

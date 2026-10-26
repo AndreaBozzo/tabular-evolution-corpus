@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from conftest import ROOT
 
 from adapters.base import Adapter, ColumnProfile, Observation, ResultField
 from adapters.runner import (
@@ -23,7 +24,6 @@ from adapters.runner import (
     result_validator,
     write_results,
 )
-from conftest import ROOT
 
 IDENTITY = CorpusIdentity("0.1.0", "6d928a8c2b0b91adc8d8896c8cc6b7cc7488f800")
 SCENARIOS = ["add_all_null_column", "reorder_columns"]  # three transitions
@@ -42,7 +42,9 @@ class FakeAdapter(Adapter):
         return paths
 
     def describe(self, result: Any) -> Observation:
-        return Observation([ResultField("id", "int64", "I64", None), ResultField("x", None, "Weird", None)], len(result))
+        return Observation(
+            [ResultField("id", "int64", "I64", None), ResultField("x", None, "Weird", None)], len(result)
+        )
 
 
 def test_records_cover_every_declared_operation_and_mode() -> None:
@@ -72,7 +74,9 @@ def test_engine_errors_are_recorded_with_relative_paths(tmp_path: Path, monkeypa
     assert error["status"] == "error"
     assert error["error_class"] == "builtins.ValueError"
     assert error["notes"] == ["strict refuses fixtures/reorder_columns/v0.parquet fixtures/reorder_columns/v1.parquet"]
-    assert swapped["notes"] == ["strict refuses fixtures/reorder_columns/v1.parquet fixtures/reorder_columns/v0.parquet"]
+    assert swapped["notes"] == [
+        "strict refuses fixtures/reorder_columns/v1.parquet fixtures/reorder_columns/v0.parquet"
+    ]
     assert (error["result_schema"], error["row_count"]) == (None, None)
 
 
@@ -145,7 +149,9 @@ def test_phase_two_operations_keep_modes_and_operation_specific_outcomes() -> No
     assert records[4]["exit_code"] == 1
     assert records[4]["findings"] == ["Contract tool says invalid: changed type"]
     assert records[4]["status"] == "success"
-    assert records[6]["column_profiles"] == [{"name": "id", "inferred_type": "int64", "native_type": "integer", "null_ratio": 0.0}]
+    assert records[6]["column_profiles"] == [
+        {"name": "id", "inferred_type": "int64", "native_type": "integer", "null_ratio": 0.0}
+    ]
 
 
 def test_phase_two_adapter_cannot_report_a_read_shape_for_a_contract_check() -> None:
@@ -177,7 +183,9 @@ def test_results_round_trip_as_ascii_json_lines(tmp_path: Path) -> None:
 
 def test_result_writer_rejects_nonfinite_numbers(tmp_path: Path) -> None:
     records = observe(ROOT, FakeAdapter(), IDENTITY, ["reorder_columns"])
-    records[0]["column_profiles"] = [{"name": "x", "inferred_type": "double", "native_type": "Float64", "null_ratio": float("nan")}]
+    records[0]["column_profiles"] = [
+        {"name": "x", "inferred_type": "double", "native_type": "Float64", "null_ratio": float("nan")}
+    ]
     with pytest.raises(ValueError, match="Out of range float values"):
         write_results(tmp_path / "invalid.jsonl", records)
 

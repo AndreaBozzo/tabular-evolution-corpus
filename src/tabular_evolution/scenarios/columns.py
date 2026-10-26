@@ -24,7 +24,9 @@ def add_nullable_string_column() -> Scenario:
         tags=["add-field", "string", "nullable"],
         row_identity=["id"],
         versions=[
-            Version("v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]),
+            Version(
+                "v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]
+            ),
             Version(
                 "v1",
                 lambda: table(
@@ -55,7 +57,9 @@ def add_nullable_int64_column() -> Scenario:
         tags=["add-field", "integer", "nullable", "numeric-extremes"],
         row_identity=["id"],
         versions=[
-            Version("v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]),
+            Version(
+                "v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]
+            ),
             Version(
                 "v1",
                 lambda: table(
@@ -66,7 +70,9 @@ def add_nullable_int64_column() -> Scenario:
             ),
         ],
         transitions=[
-            Transition("v0", "v1", [add_field("loyalty_points", "int64", True)], same_rows(parquet_schema_preserved=False))
+            Transition(
+                "v0", "v1", [add_field("loyalty_points", "int64", True)], same_rows(parquet_schema_preserved=False)
+            )
         ],
     )
 
@@ -88,7 +94,9 @@ def add_required_column() -> Scenario:
         tags=["add-field", "string", "non-nullable"],
         row_identity=["id"],
         versions=[
-            Version("v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]),
+            Version(
+                "v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]
+            ),
             Version(
                 "v1",
                 lambda: table([ID, NAME, country], [ids(6), NAMES, ["GB", "US", "FI", "US", "NL", "US"]]),
@@ -121,7 +129,9 @@ def add_all_null_column() -> Scenario:
         tags=["add-field", "all-null", "backfill", "multi-version"],
         row_identity=["id"],
         versions=[
-            Version("v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]),
+            Version(
+                "v0", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]
+            ),
             Version("v1", lambda: table([ID, NAME, referrer], [ids(6), NAMES, [None] * 6]), schema_v1),
             Version(
                 "v2",
@@ -133,9 +143,7 @@ def add_all_null_column() -> Scenario:
             ),
         ],
         transitions=[
-            Transition(
-                "v0", "v1", [add_field("referrer", "string", True)], same_rows(parquet_schema_preserved=False)
-            ),
+            Transition("v0", "v1", [add_field("referrer", "string", True)], same_rows(parquet_schema_preserved=False)),
             Transition(
                 "v1",
                 "v2",
@@ -164,7 +172,9 @@ def remove_nullable_column() -> Scenario:
                 lambda: table([ID, NAME, middle], [ids(6), NAMES, [None, "Marie", None, "", "Wybe", "Elizabeth"]]),
                 [col("id", "int64", False), col("name", "string"), col("middle_name", "string")],
             ),
-            Version("v1", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]),
+            Version(
+                "v1", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]
+            ),
         ],
         transitions=[
             Transition(
@@ -195,7 +205,9 @@ def remove_required_column() -> Scenario:
                 lambda: table([ID, NAME, country], [ids(6), NAMES, ["GB", "US", "FI", "US", "NL", "US"]]),
                 [col("id", "int64", False), col("name", "string"), col("country_code", "string", False)],
             ),
-            Version("v1", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]),
+            Version(
+                "v1", lambda: table([ID, NAME], [ids(6), NAMES]), [col("id", "int64", False), col("name", "string")]
+            ),
         ],
         transitions=[
             Transition(

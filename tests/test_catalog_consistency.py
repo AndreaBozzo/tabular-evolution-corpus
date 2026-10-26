@@ -8,9 +8,16 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.types as pat
 import pytest
-
 from conftest import FIXTURES, ROOT, SCENARIO_IDS, load
-from tabular_evolution.catalog import CATALOG_PATH, CATALOG_SCHEMA, build_catalog, catalog_row, read_catalog, write_catalog
+
+from tabular_evolution.catalog import (
+    CATALOG_PATH,
+    CATALOG_SCHEMA,
+    build_catalog,
+    catalog_row,
+    read_catalog,
+    write_catalog,
+)
 from tabular_evolution.release import same_writer
 
 

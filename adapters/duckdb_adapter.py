@@ -29,6 +29,7 @@ union_by_name.
 from __future__ import annotations
 
 import duckdb
+from duckdb.sqltypes import DuckDBPyType
 
 from .base import Adapter, Observation, ResultField
 
@@ -54,14 +55,19 @@ _SIMPLE = {
 }
 
 
-def corpus_type(t: duckdb.DuckDBPyType) -> str | None:
+def corpus_type(t: DuckDBPyType) -> str | None:
     if t.id in _SIMPLE:
         return _SIMPLE[t.id]
     if t.id == "decimal":
         params = dict(t.children)
         return f"decimal128({params['precision']}, {params['scale']})"
     if t.id in ("struct", "list", "map"):
-        members = [(name, corpus_type(child)) for name, child in t.children]
+        members = []
+        for name, child in t.children:
+            # Nested types have type children; ints and name lists belong to decimal and enum.
+            if not isinstance(child, DuckDBPyType):
+                raise AssertionError(f"{t}: member {name} is {child!r}, not a type")
+            members.append((name, corpus_type(child)))
         if any(m is None for _, m in members):
             return None
         if t.id == "struct":
@@ -108,6 +114,9 @@ class DuckDBAdapter(Adapter):
             if str(t) != native:
                 raise AssertionError(f"{name}: DESCRIBE says {native}, the relation says {t}")
             fields.append(ResultField(name, corpus_type(t), native, None))
-        (row_count,) = result.sql("SELECT count(*) FROM result").fetchone()
+        counted = result.sql("SELECT count(*) FROM result").fetchone()
+        if counted is None:
+            raise AssertionError("count(*) returned no row")
+        (row_count,) = counted
         result.close()
         return Observation(fields, row_count)

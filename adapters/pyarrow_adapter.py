@@ -38,7 +38,10 @@ class PyArrowDatasetAdapter(Adapter):
 
     @property
     def version(self) -> str:
-        return pa.__version__
+        version = pa.__version__
+        if version is None:
+            raise AssertionError("pyarrow reports no version")
+        return version
 
     def read(self, operation: str, mode: str, paths: list[str]) -> pa.Table:
         if operation == "read_each_version":

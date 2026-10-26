@@ -27,9 +27,13 @@ uv run tec validate [<scenario_id> ...]
 
 uv run python -m adapters.runner [adapter ...]  # needs a clean checkout whose fixtures/ match a tagged release
 uv run python -m adapters.report [--check]      # regenerate the tables in docs/OBSERVATIONS.md
+
+uv run ruff format .                            # formatter, line length 120
+uv run ruff check .
+uv run ty check                                 # needs --group adapters --group compat synced
 ```
 
-CI (`.github/workflows/ci.yml`) runs pytest, regenerates fixtures and catalog on Linux/Windows/macOS with Python 3.11 and 3.13, and fails on any byte difference (`git status --porcelain` must be empty). Separate jobs require the compat and adapter tests to run without skips.
+CI (`.github/workflows/ci.yml`) runs ruff and ty, pytest, regenerates fixtures and catalog on Linux/Windows/macOS with Python 3.11 and 3.13, and fails on any byte difference (`git status --porcelain` must be empty). Separate jobs require the compat and adapter tests to run without skips.
 
 ## Architecture
 
