@@ -19,7 +19,7 @@ from adapters.runner import CorpusIdentity, observe
 from conftest import ROOT, SCENARIO_IDS, load
 
 IDENTITY = CorpusIdentity("0.1.0", "0" * 40)
-ENGINE_MODULE = {"deltalake": "deltalake", "duckdb": "duckdb", "polars": "polars", "pyarrow_dataset": "pyarrow"}
+ENGINE_MODULE = {"dataprof": "dataprof", "deltalake": "deltalake", "duckdb": "duckdb", "polars": "polars", "pyarrow_dataset": "pyarrow"}
 
 
 @cache

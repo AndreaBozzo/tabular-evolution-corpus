@@ -287,8 +287,8 @@ the manifest):
   for a raised exception. `profile_each_version` runs on each file separately
   and records inferred types and null ratios in
   `column_profiles`. Empty files have a null ratio of null. The stored type
-  stays in the manifest and joins by scenario and input version. These
-  operations are defined here before their adapters are added.
+  stays in the manifest and joins by scenario and input version. delta-rs
+  records `append_to_table`; dataprof records the other two.
 - **Types.** `type` is the corpus type vocabulary where the engine's type has
   a clear equivalent, otherwise null; `native_type` is always the engine's own
   spelling. `nullable` is null for engines that record no nullability. A

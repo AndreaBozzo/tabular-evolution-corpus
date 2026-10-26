@@ -23,9 +23,18 @@ Delta Lake is the first Phase 2 adapter. It creates a fresh local table from
 the first file on each call, then writes the second with default append
 rules, append with `schema_mode="merge"`, or overwrite with
 `schema_mode="overwrite"`. The resulting Delta schema and row count are
-recorded. The two remaining Phase 2
-operations, `check_against_contract` and `profile_each_version`, have no
-adapter runs yet. [delta-rs documents these write modes](https://delta-io.github.io/delta-rs/usage/writing/).
+recorded. [delta-rs documents these write modes](https://delta-io.github.io/delta-rs/usage/writing/).
+
+dataprof runs the other two. `profile_each_version` calls
+`dataprof.profile(file)` and records its inferred type (a logical type such as
+`Integer`, so never a corpus type) and null ratio per column.
+`check_against_contract` saves `dataprof.profile(first)` as a baseline report and
+runs `python -m dataprof.check second --baseline REPORT --json` in a fresh
+process: `closed_schema` adds `--forbid-removed-columns --forbid-added-columns`,
+`closed_schema_null_increase` also `--max-null-increase *=0`. The exit code is
+the tool's. Findings are the checks that did not pass and the baseline's
+diagnostics, in the tool's text layout `status: code [column]: message`.
+[dataprof documents the baseline rules](https://github.com/AndreaBozzo/dataprof/blob/master/docs/python/README.md#against-a-baseline-013).
 
 ```bash
 uv sync --group adapters
