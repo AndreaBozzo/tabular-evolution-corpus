@@ -192,6 +192,9 @@ def render(root: Path, results_dir: Path) -> str:
     def row_count(sid: str, version_id: str) -> int:
         return next(v["row_count"] for v in manifests[sid]["versions"] if v["id"] == version_id)
 
+    def schema_of(sid: str, version_id: str) -> list[dict[str, Any]]:
+        return next(v["schema"] for v in manifests[sid]["versions"] if v["id"] == version_id)
+
     together_rows, each_rows, agreeing, order_rows = [], [], [], []
     for key in sorted(grouped):
         sid, from_, to = key
@@ -342,7 +345,7 @@ def render(root: Path, results_dir: Path) -> str:
                 "",
             ]
         )
-    out += _profile_and_check_sections(by_adapter, grouped, modes, transition, total)
+    out += _profile_and_check_sections(by_adapter, grouped, modes, transition, schema_of, total)
     out.append(END)
     return "\n".join(out)
 
@@ -362,7 +365,8 @@ def _check_cell(record: dict[str, Any] | None) -> str:
     return f"exit {record['exit_code']}" + (": " + "; ".join(labels) if labels else "")
 
 
-def _profile_cell(record: dict[str, Any], columns: list[str]) -> str:
+def _profile_cell(record: dict[str, Any], columns: list[str], stored: dict[str, str]) -> str:
+    """Per column: the stored type from the manifest, the inferred type and the null ratio."""
     if record["status"] == "error":
         return f"error: `{record['error_class'].rsplit('.', 1)[-1]}`"
     present = {p["name"]: p for p in record["column_profiles"]}
@@ -371,7 +375,9 @@ def _profile_cell(record: dict[str, Any], columns: list[str]) -> str:
         if name not in present:
             return "(absent)"
         ratio = present[name]["null_ratio"]
-        return f"`{present[name]['native_type']}` {'-' if ratio is None else f'{ratio:.2f}'}"
+        return (
+            f"`{stored.get(name, '?')}` as `{present[name]['native_type']}` {'-' if ratio is None else f'{ratio:.2f}'}"
+        )
 
     return "; ".join(f"{name}: {one(name)}" for name in columns) or "-"
 
@@ -381,6 +387,7 @@ def _profile_and_check_sections(
     grouped: dict[Key, dict[tuple[str, str, str], list[dict[str, Any]]]],
     modes: dict[str, list[tuple[str, str]]],
     transition: Any,
+    schema_of: Any,
     total: int,
 ) -> list[str]:
     out: list[str] = []
@@ -390,15 +397,16 @@ def _profile_and_check_sections(
         rows = []
         for key in sorted(grouped):
             sid, from_, to = key
-            focus = _focus(transition(key))
-            pair = [_in_order(grouped[key][("profile_each_version", adapter, mode)], [v]) for v in (from_, to)]
-            if not focus or any(r is None for r in pair):
-                continue
-            rows.append([f"`{sid}` {from_}→{to}", *(_profile_cell(r, focus) for r in pair if r is not None)])
+            schemas = {v: {f["name"]: f["type"] for f in schema_of(sid, v)} for v in (from_, to)}
+            # A transition with no schema change names no column; there every column is shown, since
+            # values alone can move an inferred type away from the stored one.
+            focus = _focus(transition(key)) or list(schemas[to])
+            pair = [_record(grouped[key][("profile_each_version", adapter, mode)], [v]) for v in (from_, to)]
+            rows.append([f"`{sid}` {from_}→{to}", *(_profile_cell(r, focus, schemas[r["inputs"][0]]) for r in pair)])
         out += [
-            f"**{name} profiles of each version.** The inferred type, in {name}'s own spelling, and the null "
-            "ratio of the columns each transition touches; `-` for a version without rows. Transitions that "
-            "name no column are left out.",
+            f"**{name} profiles of each version.** Per column: the stored type from the manifest, the type "
+            f"{name} inferred in its own spelling, and the null ratio; `-` for a version without rows. "
+            "Columns are the ones a transition touches, or every column when it names none.",
             "",
             *_table(["transition", "`from`", "`to`"], rows),
             "",

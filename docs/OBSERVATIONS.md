@@ -147,41 +147,46 @@ Every adapter and mode reads the other 10 alike: `add_all_null_column` v1→v2, 
 | `timestamp_ns_to_us` v0→v1 | 12 rows; event_time: `timestamp[us]` | 12 rows; event_time: `timestamp[us]` | 6 rows; event_time: `timestamp[us]` | 12 rows; event_time: `timestamp[us]` | 12 rows; event_time: `timestamp[us]` | 6 rows; event_time: `timestamp[us]` |
 | `widen_int32_to_int64` v0→v1 | 12 rows; quantity: `int32` | 12 rows; quantity: `int32` | 6 rows; quantity: `int64` | 12 rows; quantity: `int64` | 12 rows; quantity: `int64` | 6 rows; quantity: `int32` |
 
-**dataprof profiles of each version.** The inferred type, in dataprof's own spelling, and the null ratio of the columns each transition touches; `-` for a version without rows. Transitions that name no column are left out.
+**dataprof profiles of each version.** Per column: the stored type from the manifest, the type dataprof inferred in its own spelling, and the null ratio; `-` for a version without rows. Columns are the ones a transition touches, or every column when it names none.
 
 | transition | `from` | `to` |
 | --- | --- | --- |
-| `add_all_null_column` v0→v1 | referrer: (absent) | referrer: `String` 1.00 |
-| `add_all_null_column` v1→v2 | referrer: `String` 1.00 | referrer: `String` 0.17 |
-| `add_field_in_list_of_struct` v0→v1 | line_items: `Nested` 0.20 | line_items: `Nested` 0.20 |
-| `add_nested_field` v0→v1 | address: `Nested` 0.20 | address: `Nested` 0.20 |
-| `add_nullable_int64_column` v0→v1 | loyalty_points: (absent) | loyalty_points: `Integer` 0.17 |
-| `add_nullable_string_column` v0→v1 | customer_segment: (absent) | customer_segment: `String` 0.50 |
-| `add_required_column` v0→v1 | country_code: (absent) | country_code: `String` 0.00 |
-| `column_becomes_all_null` v0→v1 | discount: `Float` 0.33 | discount: `Float` 1.00 |
-| `decimal_precision_increase` v0→v1 | price: `Float` 0.17 | price: `Float` 0.17 |
-| `decimal_scale_increase` v0→v1 | price: `Float` 0.17 | price: `Float` 0.17 |
-| `float64_to_int64_fractional` v0→v1 | amount: `Float` 0.14 | amount: `Integer` 0.14 |
-| `float64_to_int64_integral` v0→v1 | amount: `Float` 0.14 | amount: `Integer` 0.14 |
-| `int32_to_decimal` v0→v1 | quantity: `Integer` 0.17 | quantity: `Float` 0.17 |
-| `int64_to_float64` v0→v1 | measurement: `Integer` 0.14 | measurement: `Float` 0.14 |
-| `list_element_widen` v0→v1 | scores: `Nested` 0.20 | scores: `Nested` 0.20 |
-| `map_value_widen` v0→v1 | attributes: `Nested` 0.20 | attributes: `Nested` 0.20 |
-| `nested_field_type_change` v0→v1 | position: `Nested` 0.20 | position: `Nested` 0.20 |
-| `null_type_to_string` v0→v1 | comment: `String` 1.00 | comment: `String` 0.60 |
-| `nullable_column_backfilled` v0→v1 | email: `String` 0.50 | email: `String` 0.17 |
-| `nullable_to_required` v0→v1 | sku: `String` 0.00 | sku: `String` 0.00 |
-| `remove_nested_field` v0→v1 | address: `Nested` 0.20 | address: `Nested` 0.20 |
-| `remove_nullable_column` v0→v1 | middle_name: `String` 0.50 | middle_name: (absent) |
-| `remove_required_column` v0→v1 | country_code: `String` 0.00 | country_code: (absent) |
-| `rename_column_with_field_id` v0→v1 | display_name: (absent); full_name: `String` 0.33 | display_name: `String` 0.33; full_name: (absent) |
-| `required_to_nullable` v0→v1 | sku: `String` 0.00 | sku: `String` 0.00 |
-| `string_to_binary` v0→v1 | payload: `String` 0.33 | payload: `String` 0.17 |
-| `string_to_dictionary` v0→v1 | status: `String` 0.17 | status: `String` 0.17 |
-| `string_to_large_string` v0→v1 | label: `String` 0.50 | label: `String` 0.50 |
-| `timestamp_naive_to_utc` v0→v1 | event_time: `Date` 0.20 | event_time: `Date` 0.20 |
-| `timestamp_ns_to_us` v0→v1 | event_time: `Date` 0.17 | event_time: `Date` 0.17 |
-| `widen_int32_to_int64` v0→v1 | quantity: `Integer` 0.17 | quantity: `Integer` 0.17 |
+| `add_all_null_column` v0→v1 | referrer: (absent) | referrer: `string` as `String` 1.00 |
+| `add_all_null_column` v1→v2 | referrer: `string` as `String` 1.00 | referrer: `string` as `String` 0.17 |
+| `add_field_in_list_of_struct` v0→v1 | line_items: `list<struct<sku: string, qty: int32>>` as `Nested` 0.20 | line_items: `list<struct<sku: string, qty: int32, discount: double>>` as `Nested` 0.20 |
+| `add_nested_field` v0→v1 | address: `struct<street: string, city: string>` as `Nested` 0.20 | address: `struct<street: string, city: string, postcode: string>` as `Nested` 0.20 |
+| `add_nullable_int64_column` v0→v1 | loyalty_points: (absent) | loyalty_points: `int64` as `Integer` 0.17 |
+| `add_nullable_string_column` v0→v1 | customer_segment: (absent) | customer_segment: `string` as `String` 0.50 |
+| `add_required_column` v0→v1 | country_code: (absent) | country_code: `string` as `String` 0.00 |
+| `column_becomes_all_null` v0→v1 | discount: `double` as `Float` 0.33 | discount: `double` as `Float` 1.00 |
+| `decimal_precision_increase` v0→v1 | price: `decimal128(9, 2)` as `Float` 0.17 | price: `decimal128(18, 2)` as `Float` 0.17 |
+| `decimal_scale_increase` v0→v1 | price: `decimal128(9, 2)` as `Float` 0.17 | price: `decimal128(9, 4)` as `Float` 0.17 |
+| `dictionary_reencoded` v0→v1 | id: `int64` as `Integer` 0.00; status: `dictionary<values=string, indices=int8, ordered=0>` as `String` 0.17 | id: `int64` as `Integer` 0.00; status: `dictionary<values=string, indices=int8, ordered=0>` as `String` 0.17 |
+| `empty_then_populated` v0→v1 | id: `int64` as `Integer` -; label: `string` as `String` -; amount: `double` as `Float` -; observed_at: `timestamp[us, tz=UTC]` as `Date` - | id: `int64` as `Integer` 0.00; label: `string` as `String` 0.80; amount: `double` as `Float` 0.40; observed_at: `timestamp[us, tz=UTC]` as `Date` 0.20 |
+| `float64_to_int64_fractional` v0→v1 | amount: `double` as `Float` 0.14 | amount: `int64` as `Integer` 0.14 |
+| `float64_to_int64_integral` v0→v1 | amount: `double` as `Float` 0.14 | amount: `int64` as `Integer` 0.14 |
+| `int32_to_decimal` v0→v1 | quantity: `int32` as `Integer` 0.17 | quantity: `decimal128(12, 2)` as `Float` 0.17 |
+| `int64_to_float64` v0→v1 | measurement: `int64` as `Integer` 0.14 | measurement: `double` as `Float` 0.14 |
+| `list_element_widen` v0→v1 | scores: `list<int32>` as `Nested` 0.20 | scores: `list<int64>` as `Nested` 0.20 |
+| `map_value_widen` v0→v1 | attributes: `map<string, int32>` as `Nested` 0.20 | attributes: `map<string, int64>` as `Nested` 0.20 |
+| `nested_field_type_change` v0→v1 | position: `struct<lat: float not null, lon: float not null>` as `Nested` 0.20 | position: `struct<lat: double not null, lon: double not null>` as `Nested` 0.20 |
+| `null_type_to_string` v0→v1 | comment: `null` as `String` 1.00 | comment: `string` as `String` 0.60 |
+| `nullable_column_backfilled` v0→v1 | email: `string` as `String` 0.50 | email: `string` as `String` 0.17 |
+| `nullable_to_required` v0→v1 | sku: `string` as `String` 0.00 | sku: `string` as `String` 0.00 |
+| `remove_nested_field` v0→v1 | address: `struct<street: string, city: string, postcode: string>` as `Nested` 0.20 | address: `struct<street: string, city: string>` as `Nested` 0.20 |
+| `remove_nullable_column` v0→v1 | middle_name: `string` as `String` 0.50 | middle_name: (absent) |
+| `remove_required_column` v0→v1 | country_code: `string` as `String` 0.00 | country_code: (absent) |
+| `rename_column_with_field_id` v0→v1 | display_name: (absent); full_name: `string` as `String` 0.33 | display_name: `string` as `String` 0.33; full_name: (absent) |
+| `reorder_columns` v0→v1 | amount: `int64` as `Integer` 0.17; id: `int64` as `Integer` 0.00; active: `bool` as `Boolean` 0.17; region: `string` as `String` 0.17 | amount: `int64` as `Integer` 0.17; id: `int64` as `Integer` 0.00; active: `bool` as `Boolean` 0.17; region: `string` as `String` 0.17 |
+| `required_to_nullable` v0→v1 | sku: `string` as `String` 0.00 | sku: `string` as `String` 0.00 |
+| `rows_appended_without_key` v0→v1 | level: `string` as `String` 0.00; message: `string` as `String` 0.25 | level: `string` as `String` 0.00; message: `string` as `String` 0.17 |
+| `rows_deleted` v0→v1 | id: `int64` as `Integer` 0.00; status: `string` as `String` 0.17; amount: `int64` as `Integer` 0.17 | id: `int64` as `Integer` 0.00; status: `string` as `String` 0.00; amount: `int64` as `Integer` 0.00 |
+| `string_to_binary` v0→v1 | payload: `string` as `String` 0.33 | payload: `binary` as `String` 0.17 |
+| `string_to_dictionary` v0→v1 | status: `string` as `String` 0.17 | status: `dictionary<values=string, indices=int8, ordered=0>` as `String` 0.17 |
+| `string_to_large_string` v0→v1 | label: `string` as `String` 0.50 | label: `large_string` as `String` 0.50 |
+| `timestamp_naive_to_utc` v0→v1 | event_time: `timestamp[us]` as `Date` 0.20 | event_time: `timestamp[us, tz=UTC]` as `Date` 0.20 |
+| `timestamp_ns_to_us` v0→v1 | event_time: `timestamp[ns]` as `Date` 0.17 | event_time: `timestamp[us]` as `Date` 0.17 |
+| `widen_int32_to_int64` v0→v1 | quantity: `int32` as `Integer` 0.17 | quantity: `int64` as `Integer` 0.17 |
 
 **dataprof contract checks.** The contract is derived from the first file, the check runs on the second; reversed columns swap them. Cells show the tool's exit code and each finding as status, code and column, in the tool's words. `closed_schema`: exit 0 29, exit 1 7; `closed_schema` reversed: exit 0 29, exit 1 7; `closed_schema_null_increase`: exit 0 27, exit 1 8, exit 2 1; `closed_schema_null_increase` reversed: exit 0 22, exit 1 13, exit 2 1 (of 36).
 
