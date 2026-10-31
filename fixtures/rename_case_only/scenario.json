@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "rename_case_only",
+  "title": "Column name changes case only, without field ids",
+  "category": "structural",
+  "description": "Column UserId becomes userid. The files carry no field ids, so by the corpus rules this is UserId removed and userid added. The two columns hold the same int64 values, row for row.",
+  "notes": [
+    "Readers that resolve column names case-insensitively see one column in both files; case-sensitive readers see two different columns.",
+    "Without field ids a rename is indistinguishable from a removal and an addition, so no rename_field is recorded (see rename_column_with_field_id)."
+  ],
+  "tags": [
+    "remove-field",
+    "add-field",
+    "case-sensitivity",
+    "no-field-id"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:cf8c9090739fb0f45dfdd94297848a76305dbf5655e19136d760e0c07f9e9fc8",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "UserId",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:7a16e45dadb88c23a2865d88fa6f0825bc7e29ee8d0416b336662d87a9227e6c",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "userid",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "remove_field",
+          "path": "UserId",
+          "type": "int64",
+          "nullable": true
+        },
+        {
+          "kind": "add_field",
+          "path": "userid",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": false,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

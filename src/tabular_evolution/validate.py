@@ -227,12 +227,17 @@ def observe_transition(scenario: LoadedScenario, from_id: str, to_id: str) -> di
 
     flat_a, flat_b = flatten(a), flatten(b)
     renamed = renames(mutations)
+    removed = [m["path"] for m in mutations if m["kind"] == "remove_field"]
+    under = lambda p, q: p == q or p.startswith((q + ".", q + "["))  # noqa: E731
     common: list[tuple[str, str]] = []
     for p in flat_a:
+        # A removed field has no counterpart, even when a different field in
+        # `to` has its name: field ids can tell the two apart.
+        if any(under(p, r) for r in removed):
+            continue
         # The longest renamed prefix wins: a renamed child inside a renamed
         # struct carries its full new path already.
-        matches = [old for old in renamed if p == old or p.startswith((old + ".", old + "["))]
-        old = max(matches, key=len, default=None)
+        old = max((old for old in renamed if under(p, old)), key=len, default=None)
         target = p if old is None else renamed[old] + p[len(old) :]
         if target in flat_b:
             common.append((p, target))
@@ -248,7 +253,7 @@ def observe_transition(scenario: LoadedScenario, from_id: str, to_id: str) -> di
         "row_count_preserved": a.num_rows == b.num_rows,
         "row_identity_preserved": keys_a == keys_b,
         "rows_retained": set(keys_a) <= set(keys_b),
-        "paths_retained": set(flat_a) <= set(flat_b),
+        "paths_retained": all((p, p) in common for p in flat_a),
         "common_values_preserved": not changes,
         "value_changes": changes,
         "parquet_schema_preserved": parquet_schema_text(scenario.path(from_id))

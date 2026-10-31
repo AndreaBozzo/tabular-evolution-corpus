@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "rename_then_reuse_name",
+  "title": "Rename a column, then add a new column under the old name",
+  "category": "structural",
+  "description": "Column status (field id 2) is renamed to legacy_status and keeps its values. A new string column named status, field id 4, is appended with different values. Both status columns are strings, so a reader that matches by name finds no type difference between them.",
+  "notes": [
+    "Every column carries a field id. By field id, status in v0 is legacy_status in v1, and status in v1 is a new column; by name, status is present in both versions with different values."
+  ],
+  "tags": [
+    "rename-field",
+    "add-field",
+    "field-id",
+    "name-reuse"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:48c70f46dab3ab3b1054d1a253a68d7d9783dcbff2fe15526a41bcfba94f0d59",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false,
+          "field_id": 1
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "nullable": true,
+          "field_id": 2
+        },
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true,
+          "field_id": 3
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:5a63cd301851ca0895a5452333780501838359da21cc92419d0da442d2863487",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false,
+          "field_id": 1
+        },
+        {
+          "name": "legacy_status",
+          "type": "string",
+          "nullable": true,
+          "field_id": 2
+        },
+        {
+          "name": "amount",
+          "type": "int64",
+          "nullable": true,
+          "field_id": 3
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "nullable": true,
+          "field_id": 4
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "rename_field",
+          "path": "legacy_status",
+          "old_path": "status",
+          "field_id": 2
+        },
+        {
+          "kind": "add_field",
+          "path": "status",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": false,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

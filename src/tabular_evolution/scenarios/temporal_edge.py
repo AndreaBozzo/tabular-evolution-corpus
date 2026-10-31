@@ -1,6 +1,8 @@
-"""Timestamps, and the empty-then-populated edge case."""
+"""Timestamps and dates, and the edge cases of rows and emptiness."""
 
 from __future__ import annotations
+
+from datetime import date
 
 import pyarrow as pa
 
@@ -112,6 +114,116 @@ def timestamp_ns_to_us() -> Scenario:
                 "v1",
                 [change_type("event_time", "timestamp[ns]", "timestamp[us]")],
                 same_rows(parquet_schema_preserved=False),
+            )
+        ],
+    )
+
+
+MS_PER_S = 1000
+
+# Stored milliseconds; the microsecond version stores each times 1000.
+MS_TIMES = [
+    -62135596800 * MS_PER_S,  # 0001-01-01T00:00:00, the first instant of year 1
+    253402300799 * MS_PER_S + 999,  # 9999-12-31T23:59:59.999, the last millisecond of year 9999
+    -1,  # 1969-12-31T23:59:59.999
+    0,
+    1709208000 * MS_PER_S,  # 2024-02-29T12:00:00
+    None,
+]
+
+
+def timestamp_ms_to_us() -> Scenario:
+    return Scenario(
+        scenario_id="timestamp_ms_to_us",
+        title="Timestamp unit changes from milliseconds to microseconds",
+        category="temporal",
+        description=(
+            "A naive timestamp column changes unit from milliseconds to microseconds. Every instant is "
+            "unchanged. Values include 0001-01-01T00:00:00 and 9999-12-31T23:59:59.999, both outside the range "
+            "timestamp[ns] can hold, one millisecond before the epoch, and a leap day."
+        ),
+        notes=[
+            "At the Parquet level the Timestamp logical type's unit changes from MILLIS to MICROS and every "
+            "stored INT64 is multiplied by 1000.",
+            "timestamp[ns] holds 1677-09-21 to 2262-04-11. Combining these two files at nanosecond precision "
+            "has no nanosecond value for the first two rows.",
+        ],
+        tags=["change-type", "timestamp", "unit", "milliseconds", "range-extremes"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table([ID, field("event_time", pa.timestamp("ms"))], [ids(6), MS_TIMES]),
+                [col("id", "int64", False), col("event_time", "timestamp[ms]")],
+            ),
+            Version(
+                "v1",
+                lambda: table(
+                    [ID, field("event_time", pa.timestamp("us"))],
+                    [ids(6), [None if t is None else t * 1000 for t in MS_TIMES]],
+                ),
+                [col("id", "int64", False), col("event_time", "timestamp[us]")],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [change_type("event_time", "timestamp[ms]", "timestamp[us]")],
+                same_rows(parquet_schema_preserved=False),
+            )
+        ],
+    )
+
+
+RECENT_DAYS = [date(2024, 2, 29), date(1970, 1, 1), date(2000, 1, 1)]
+# Proleptic Gregorian dates before the 1582-10-15 switch from the Julian calendar.
+EARLY_DAYS = [date(1, 1, 1), date(1000, 1, 1), date(1500, 6, 15), date(1582, 10, 4)]
+
+
+def dates_before_gregorian_cutover() -> Scenario:
+    def build(days: list[date]) -> pa.Table:
+        noon = [(d - date(1970, 1, 1)).days * 86400 * US_PER_S + 12 * 3600 * US_PER_S for d in days]
+        return table(
+            [ID, field("event_date", pa.date32()), field("event_time", pa.timestamp("us"))],
+            [ids(len(days)), days, noon],
+        )
+
+    decl = [col("id", "int64", False), col("event_date", "date32[day]"), col("event_time", "timestamp[us]")]
+    return Scenario(
+        scenario_id="dates_before_gregorian_cutover",
+        title="Rows with dates before the Gregorian calendar cutover are appended",
+        category="temporal",
+        description=(
+            "v0 has three rows with recent dates. v1 keeps them and appends four rows dated 0001-01-01, "
+            "1000-01-01, 1500-06-15 and 1582-10-04, each as a date32 and as a naive timestamp at noon of that "
+            "day. The schema is unchanged."
+        ),
+        notes=[
+            "All values are proleptic Gregorian, as Parquet DATE and TIMESTAMP define them: days and "
+            "microseconds since 1970-01-01. 1582-10-04 is the day before the 1582-10-15 Gregorian cutover.",
+            "A reader that converts dates before the cutover to the Julian calendar (a hybrid calendar) "
+            "reads the four appended rows as different days; the three v0 rows are unaffected.",
+        ],
+        tags=["no-schema-change", "date", "timestamp", "calendar", "append"],
+        row_identity=["id"],
+        versions=[
+            Version("v0", lambda: build(RECENT_DAYS), decl),
+            Version("v1", lambda: build(RECENT_DAYS + EARLY_DAYS), decl),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [],
+                Invariants(
+                    row_count_preserved=False,
+                    row_identity_preserved=False,
+                    rows_retained=True,
+                    paths_retained=True,
+                    common_values_preserved=True,
+                    parquet_schema_preserved=True,
+                ),
             )
         ],
     )
@@ -232,4 +344,11 @@ def rows_deleted() -> Scenario:
     )
 
 
-SCENARIOS = [timestamp_naive_to_utc, timestamp_ns_to_us, empty_then_populated, rows_deleted]
+SCENARIOS = [
+    timestamp_naive_to_utc,
+    timestamp_ns_to_us,
+    timestamp_ms_to_us,
+    dates_before_gregorian_cutover,
+    empty_then_populated,
+    rows_deleted,
+]

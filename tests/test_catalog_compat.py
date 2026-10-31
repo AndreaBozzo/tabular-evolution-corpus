@@ -34,10 +34,13 @@ def test_duckdb() -> None:
     assert [r[0] for r in rows] == [
         "decimal_precision_increase",
         "decimal_scale_increase",
+        "float32_to_float64",
         "float64_to_int64_fractional",
         "float64_to_int64_integral",
         "int32_to_decimal",
         "int64_to_float64",
+        "uint32_to_int64",
+        "widen_int16_to_int32",
         "widen_int32_to_int64",
     ]
     assert rows[0][1] == ["change_type"]

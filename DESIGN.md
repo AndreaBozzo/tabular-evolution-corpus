@@ -139,8 +139,12 @@ identified by **position**: row *i* of one version is row *i* of the next.
 That is a declared fact about the scenario, typical of append-only logs, and
 the invariants are then evaluated on positions.
 
-"Common paths" are field paths present in both versions, plus
-`old_path -> path` pairs from renames (including their descendants). For a
+"Common paths" are the fields the structural diff matches across the two
+versions: field paths present in both versions, plus `old_path -> path` pairs
+from renames (including their descendants), minus every path at or below a
+`remove_field`. Matching follows the diff, by field id where every sibling
+has one, otherwise by name, so a removed field is not paired with a different
+field that has its name in `to` (`drop_then_readd_column`). For a
 struct path only its validity is compared, and its children are compared as
 their own paths. For a list or map path its length is compared (null, empty
 and non-empty are three different values), and its elements are compared as
@@ -151,7 +155,7 @@ the path `<path>[]`, element by element.
 | `row_count_preserved` | equal row counts |
 | `row_identity_preserved` | the ordered sequence of identity keys is identical |
 | `rows_retained` | every identity key of `from` exists in `to` |
-| `paths_retained` | every field path of `from` exists in `to` under the same name |
+| `paths_retained` | every field path of `from` is a common path and keeps its name in `to` |
 | `common_values_preserved` | for every aligned row and common path, values are equal |
 | `value_changes` | exactly the common paths whose values differ, each with a relation |
 | `parquet_schema_preserved` | Parquet column descriptors are identical |
@@ -236,11 +240,11 @@ generation, the test suite, and `verify_release.py`.
 | --- | --- |
 | additive | add nullable string / int64 column; add all-null column then backfill (3 versions); add non-nullable column |
 | subtractive | remove nullable column; remove required column |
-| numeric | int32->int64; int64->float64 (lossy above 2^53); float64->int64 integral / fractional; decimal precision increase; decimal scale increase at fixed precision; int32->decimal |
+| numeric | int32->int64; int64->float64 (lossy above 2^53); float64->int64 integral / fractional; decimal precision increase; decimal scale increase at fixed precision; int32->decimal; int16->int32; uint32->int64; float32->float64 |
 | nullability | nulls backfilled under a nullable schema; required->nullable; nullable->required; column becomes all-null; `null`-typed column becomes string |
 | representation | string->large_string; string->dictionary; dictionary re-encoded without value change; string->binary |
-| structural | reorder; rename with field ids; add / remove nested field; nested float32->float64; list element int32->int64; add field inside list<struct>; map value int32->int64 |
-| temporal | naive timestamp -> UTC timestamp; nanoseconds -> microseconds |
+| structural | reorder; rename with field ids; add / remove nested field; nested float32->float64; list element int32->int64; add field inside list<struct>; map value int32->int64; reorder struct fields; column replaced under the same name (field ids); rename then reuse the old name (field ids); case-only rename without field ids |
+| temporal | naive timestamp -> UTC timestamp; nanoseconds -> microseconds; milliseconds -> microseconds beyond the nanosecond range; dates before the Gregorian cutover appended |
 | edge | empty typed file -> populated file; rows appended to a keyless dataset; rows deleted from a keyed dataset |
 
 ## 7. Adapters (not in the core package)
@@ -251,7 +255,7 @@ mode and emits one result record per engine call, validated against
 the manifest):
 
 ```json
-{"schema_version": "1.2", "corpus_version": "0.2.0", "corpus_revision": "<40-hex commit>",
+{"schema_version": "1.2", "corpus_version": "0.3.0", "corpus_revision": "<40-hex commit>",
  "scenario_id": "timestamp_naive_to_utc", "from": "v0", "to": "v1", "inputs": ["v0", "v1"],
  "adapter": "duckdb", "adapter_version": "1.5.5", "platform": "linux-x86_64",
  "operation": "read_versions_together", "mode": "union_by_name",

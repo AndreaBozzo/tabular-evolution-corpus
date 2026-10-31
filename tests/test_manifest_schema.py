@@ -30,7 +30,7 @@ def test_schema_enums_match_the_code() -> None:
 
 
 def test_corpus_size_and_unique_ids() -> None:
-    assert 20 <= len(SCENARIO_IDS) <= 35
+    assert 20 <= len(SCENARIO_IDS) <= 50
     assert sorted(s.scenario_id for s in all_scenarios()) == SCENARIO_IDS
     lowered = [i.lower() for i in SCENARIO_IDS]
     assert len(set(lowered)) == len(lowered), "ids must be unique on case-insensitive filesystems too"

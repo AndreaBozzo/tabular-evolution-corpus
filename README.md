@@ -3,7 +3,7 @@
 [![CI](https://github.com/AndreaBozzo/tabular-evolution-corpus/actions/workflows/ci.yml/badge.svg)](https://github.com/AndreaBozzo/tabular-evolution-corpus/actions/workflows/ci.yml)
 [![Hugging Face dataset](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/AndreaBozzo/tabular-evolution-corpus)
 
-Tabular datasets change shape over time. This corpus has **35 small, versioned
+Tabular datasets change shape over time. This corpus has **44 small, versioned
 Parquet scenarios** that record what changed: schemas, structural mutations,
 rows, and values. It leaves compatibility decisions to the system you test.
 
@@ -27,7 +27,7 @@ See [using the corpus](docs/USAGE.md) for examples.
 
 ## Read more
 
-- [Scenario inventory](docs/SCENARIOS.md) — all 35 changes, with a manifest example.
+- [Scenario inventory](docs/SCENARIOS.md) — all 44 changes, with a manifest example.
 - [Using the corpus](docs/USAGE.md) — catalog queries and fixture consumption.
 - [Engine observations](docs/OBSERVATIONS.md) — PyArrow, DuckDB, Polars, and Delta Lake.
 - [Development and releases](docs/DEVELOPMENT.md) — regeneration, contribution, and versioning.

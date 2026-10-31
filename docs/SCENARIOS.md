@@ -2,7 +2,7 @@
 
 ## What this is
 
-A deliberately small corpus of **35 scenarios**. Each scenario is one logical
+A deliberately small corpus of **44 scenarios**. Each scenario is one logical
 dataset at two or more points in time:
 
 - **versions**: tiny Parquet files (0 to 8 rows) written by one pinned writer;
@@ -95,6 +95,9 @@ v1 value is exactly `float(v0)`.
 | `float64_to_int64_integral` | numeric | float64 to int64, integral values only | change_type | - | 7/7 |
 | `int32_to_decimal` | numeric | int32 to decimal with every value unchanged | change_type | - | 6/6 |
 | `int64_to_float64` | numeric | int64 to float64 with values beyond 2^53 | change_type | nearest_float64 | 7/7 |
+| `float32_to_float64` | numeric | Widen float32 to float64 | change_type | - | 7/7 |
+| `uint32_to_int64` | numeric | uint32 to int64 | change_type | - | 6/6 |
+| `widen_int16_to_int32` | numeric | Widen int16 to int32 | change_type | - | 6/6 |
 | `widen_int32_to_int64` | numeric | Widen int32 to int64 | change_type | - | 6/6 |
 | `column_becomes_all_null` | nullability | Populated column becomes entirely null | (none) | nulled | 6/6 |
 | `null_type_to_string` | nullability | Null-typed column becomes a string column | change_type | nulls_filled | 5/5 |
@@ -113,14 +116,21 @@ v1 value is exactly `float(v0)`.
 | `list_element_widen` | structural | List elements widen from int32 to int64 | change_type | - | 5/5 |
 | `add_field_in_list_of_struct` | structural | Add a field to the structs inside a list | add_field | - | 5/5 |
 | `map_value_widen` | structural | Map values widen from int32 to int64 | change_type | - | 5/5 |
+| `reorder_nested_fields` | structural | Reorder the fields inside a struct | reorder_fields | - | 5/5 |
+| `drop_then_readd_column` | structural | Column replaced by a different column of the same name | remove_field, add_field | - | 6/6 |
+| `rename_then_reuse_name` | structural | Rename a column, then add a new column under the old name | rename_field, add_field | - | 6/6 |
+| `rename_case_only` | structural | Column name changes case only, without field ids | remove_field, add_field | - | 6/6 |
 | `timestamp_naive_to_utc` | temporal | Naive timestamp becomes UTC timestamp | change_type | interpreted_as_utc | 5/5 |
 | `timestamp_ns_to_us` | temporal | Timestamp unit changes from nanoseconds to microseconds | change_type | - | 6/6 |
+| `timestamp_ms_to_us` | temporal | Timestamp unit changes from milliseconds to microseconds | change_type | - | 6/6 |
+| `dates_before_gregorian_cutover` | temporal | Rows with dates before the Gregorian calendar cutover are appended | (none) | - | 3/7 |
 | `empty_then_populated` | edge | Empty typed file followed by a populated file | (none) | - | 0/5 |
 | `rows_appended_without_key` | edge | Rows appended to a dataset without a key | (none) | - | 4/6 |
 | `rows_deleted` | edge | Rows deleted from a keyed dataset | (none) | - | 6/4 |
 
-Six scenarios have **no schema change at all** (`column_becomes_all_null`,
-`nullable_column_backfilled`, `dictionary_reencoded`, `empty_then_populated`,
+Seven scenarios have **no schema change at all** (`column_becomes_all_null`,
+`nullable_column_backfilled`, `dictionary_reencoded`,
+`dates_before_gregorian_cutover`, `empty_then_populated`,
 `rows_appended_without_key`, `rows_deleted`).
 In these, values or their encoding change while the stored schema does not,
 which matters to any system that infers types, nullability or categories from
@@ -130,9 +140,9 @@ the data it sees.
 
 | candidate | reason |
 | --- | --- |
-| Rename **without** field ids | Physically identical to remove + add; recording it as a rename would be a claim the files cannot support. A future scenario can model it as remove + add with a value-level link. |
+| Rename **without** field ids | Physically identical to remove + add; recording it as a rename would be a claim the files cannot support. `rename_case_only` records one, a case-only rename, as remove + add. |
 | Dictionary **index width** change (int8 -> int32) | Exists only in the stored Arrow schema; a reader that ignores it sees an identical Parquet column. Recording it would mostly test one writer's metadata round trip. |
 | `string_view` / `binary_view` | Written to Parquet as plain strings; the view type survives only through the stored Arrow schema, so it would duplicate `string_to_large_string` at the Parquet level. |
 | float64 NaN / infinity -> int64 | No integer value exists; any v1 content would encode a policy (null, error, sentinel). |
-| Other timestamp units, dates beyond the nanosecond range | `timestamp_ns_to_us` covers one unit change, inside the nanosecond range. Millisecond and second units, and dates only a coarser unit can hold, are good candidates left for later. |
+| Second-unit timestamps | Parquet has no seconds unit: PyArrow stores `timestamp[s]` as milliseconds, so the file would hold a different type from the one declared. `timestamp_ns_to_us` and `timestamp_ms_to_us` cover the units Parquet has, including dates only a coarser unit can hold. |
 | Map key changes, duplicate map keys | A map is modelled as a list of key/value entries, so these are representable; they are left for a scenario of their own rather than mixed into `map_value_widen`. |

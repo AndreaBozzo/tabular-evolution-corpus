@@ -69,8 +69,10 @@ def test_error_records_come_from_the_engine(name: str) -> None:
     errors = [r["error_class"] for r in adapter_records(name) if r["status"] == "error"]
     if name == "deltalake":
         # delta-rs 1.6.6 itself raises builtins.Exception for the out-of-range
-        # int-to-float cast (checked by a direct library call in the Delta test).
-        assert [e for e in errors if e.startswith("builtins.")] == ["builtins.Exception"] * 2
+        # int-to-float cast (checked by a direct library call in the Delta test)
+        # and for a merge of UserId with userid (rename_case_only, both orders):
+        # "Schema error: Duplicate field name (case-insensitive)".
+        assert [e for e in errors if e.startswith("builtins.")] == ["builtins.Exception"] * 4
     else:
         assert [e for e in errors if e.startswith("builtins.")] == []
 
@@ -162,12 +164,15 @@ def names(fields: list[dict[str, Any]]) -> list[str]:
 )
 def test_by_name_modes_return_the_union_of_columns(name: str, mode: str) -> None:
     """Defines the mode, not the engine's merit: matching by name keeps every
-    column of either version."""
+    column of either version. DuckDB identifiers are case-insensitive, so it
+    matches UserId with userid (rename_case_only)."""
+    fold = str.lower if name == "duckdb" else str
     merged = [r for r in adapter_records(name) if r["mode"] == mode and r["status"] == "success"]
     assert merged
     for r in merged:
         old, new = names(declared(r["scenario_id"], r["from"])), names(declared(r["scenario_id"], r["to"]))
-        assert sorted(names(r["result_schema"])) == sorted(set(old) | set(new)), r["scenario_id"]
+        expected = sorted({fold(n) for n in old + new})
+        assert sorted(fold(n) for n in names(r["result_schema"])) == expected, r["scenario_id"]
 
 
 @pytest.mark.parametrize(("name", "mode"), [("duckdb", "positional"), ("polars", "default")])

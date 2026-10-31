@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "reorder_nested_fields",
+  "title": "Reorder the fields inside a struct",
+  "category": "structural",
+  "description": "The three fields of the address struct change order from street, city, postcode to postcode, street, city. Top-level columns, names, types and values are unchanged. Rows include a null struct, a struct whose street is null, and a struct of empty strings.",
+  "notes": [
+    "A struct's fields are addressed by name, but stored in order: a reader that matches nested fields by position pairs postcode with street."
+  ],
+  "tags": [
+    "struct",
+    "nested",
+    "reorder-fields",
+    "nested-nulls"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:ffc0803e00bf07b7da8ccb4f60df1121b9f160cf58c79b6a505b5450a2aeef28",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "address",
+          "type": "struct<street: string, city: string, postcode: string>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 5,
+      "fingerprint": "sha256:d5424e57e4801c0aba0a9114a0418592b8d84282af88f5d663d51f70daac2a22",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "address",
+          "type": "struct<postcode: string, street: string, city: string>",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "reorder_fields",
+          "path": "address",
+          "old_order": [
+            "street",
+            "city",
+            "postcode"
+          ],
+          "new_order": [
+            "postcode",
+            "street",
+            "city"
+          ]
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

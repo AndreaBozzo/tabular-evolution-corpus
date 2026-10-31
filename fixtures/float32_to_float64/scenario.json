@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "float32_to_float64",
+  "title": "Widen float32 to float64",
+  "category": "numeric",
+  "description": "A float32 column becomes float64. Every float32 value is exactly representable as float64 and is unchanged, so the v1 value of 0.1 is 0.10000000149011612, not the float64 nearest to 0.1. Values include -0.0, NaN, the largest float32 and the smallest float32 subnormal.",
+  "notes": [
+    "nested_field_type_change makes the same change to two fields inside a struct."
+  ],
+  "tags": [
+    "change-type",
+    "floating-point",
+    "widening",
+    "nan",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:9c37b54572b211578af4950cdf0b24c6907948a93470d1be53879d3fddb68ac5",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "reading",
+          "type": "float",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:0c1298b270032b39f7e3f09e37cb8d6624c1dbe0c6ca0d6ff78f8327fef59d5f",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "reading",
+          "type": "double",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "reading",
+          "old_type": "float",
+          "new_type": "double"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

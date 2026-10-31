@@ -123,7 +123,7 @@ Three things are versioned, independently of each other:
 
 | what | where | changes when |
 | --- | --- | --- |
-| **Corpus release** (`v0.2.0`) | git tag, GitHub release, Hugging Face tag | any fixture, manifest or catalog change. A release names fixed bytes: its tag is never moved or deleted, and a changed corpus is a new release. |
+| **Corpus release** (`v0.3.0`) | git tag, GitHub release, Hugging Face tag | any fixture, manifest or catalog change. A release names fixed bytes: its tag is never moved or deleted, and a changed corpus is a new release. |
 | **Manifest format** (`schema_version: "1.0"`) | every `scenario.json` | only the manifest format changes: a new field, mutation kind, relation or invariant, or a changed type spelling. A release that only adds scenarios keeps it. |
 | **Observation runs** | outside `fixtures/` | never folded back into the corpus. A run is keyed by corpus version, corpus revision and adapter version. |
 
@@ -185,6 +185,14 @@ check fails when it is violated.
 - **Corpus 0.2.0:** four more scenarios: a non-nullable column added, int32 to
   decimal, a nanosecond to microsecond timestamp, and deleted rows (the first
   fixture with `rows_retained: false`).
+- **Corpus 0.3.0:** nine more scenarios: int16 to int32, uint32 to int64 and
+  float32 to float64 at the top level; struct fields reordered; a column
+  replaced by a different one of the same name and a rename followed by
+  reuse of the old name, both told apart by field ids; a case-only rename
+  without field ids; milliseconds to microseconds with dates outside the
+  nanosecond range; and dates before the Gregorian cutover. Common paths
+  now follow the diff's field matching, which only those two field-id
+  scenarios can tell from matching by name.
 - **Phase 1: adapters, outside the core package.** A runner, a result
   record schema and three adapters (PyArrow Dataset, DuckDB, Polars), with
   their observations in [OBSERVATIONS.md](OBSERVATIONS.md).
@@ -192,8 +200,8 @@ check fails when it is violated.
   dataprof (profiles and baseline checks) are recorded; next are Iceberg (append
   under each schema-evolution mode), Spark (`mergeSchema`), dlt, Data Contract
   CLI, Soda, Great Expectations.
-- **Corpus growth:** row reordering, map key changes, renames without field
-  ids, millisecond and second timestamp units, fixtures from a second Parquet
+- **Corpus growth:** row reordering, map key changes, date to timestamp
+  (a new value relation), fixtures from a second Parquet
   writer (see "One writer"), CSV/JSON renderings of the same scenarios.
 
 ## License and citation

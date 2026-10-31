@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "dates_before_gregorian_cutover",
+  "title": "Rows with dates before the Gregorian calendar cutover are appended",
+  "category": "temporal",
+  "description": "v0 has three rows with recent dates. v1 keeps them and appends four rows dated 0001-01-01, 1000-01-01, 1500-06-15 and 1582-10-04, each as a date32 and as a naive timestamp at noon of that day. The schema is unchanged.",
+  "notes": [
+    "All values are proleptic Gregorian, as Parquet DATE and TIMESTAMP define them: days and microseconds since 1970-01-01. 1582-10-04 is the day before the 1582-10-15 Gregorian cutover.",
+    "A reader that converts dates before the cutover to the Julian calendar (a hybrid calendar) reads the four appended rows as different days; the three v0 rows are unaffected."
+  ],
+  "tags": [
+    "no-schema-change",
+    "date",
+    "timestamp",
+    "calendar",
+    "append"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 3,
+      "fingerprint": "sha256:f1f76972e8047b28dcceac0325d74fa1302a100ce3d1c0bbf75687e2aacbf623",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_date",
+          "type": "date32[day]",
+          "nullable": true
+        },
+        {
+          "name": "event_time",
+          "type": "timestamp[us]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 7,
+      "fingerprint": "sha256:83962ecde7253da664b3149d07f01acae8d544556d7532004ad395e50a1e3906",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_date",
+          "type": "date32[day]",
+          "nullable": true
+        },
+        {
+          "name": "event_time",
+          "type": "timestamp[us]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [],
+      "invariants": {
+        "row_count_preserved": false,
+        "row_identity_preserved": false,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": true
+      }
+    }
+  ]
+}

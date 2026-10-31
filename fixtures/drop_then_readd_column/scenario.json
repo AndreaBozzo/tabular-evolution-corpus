@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "drop_then_readd_column",
+  "title": "Column replaced by a different column of the same name",
+  "category": "structural",
+  "description": "v0 has an int32 column score with field id 3. v1 has no field id 3; it has a string column, also named score, with field id 4 and unrelated values (letter grades, a null and an empty string). By field id this is one column removed and another added. The name and the position are the same.",
+  "notes": [
+    "This is what a table history that drops a column and later adds a new one under the same name leaves in its data files: a v0 file and a v1 file whose same-named columns are different columns.",
+    "Both files carry field ids on every column, so the field id is the evidence that the two score columns are distinct. A reader that matches columns by name pairs them."
+  ],
+  "tags": [
+    "remove-field",
+    "add-field",
+    "field-id",
+    "name-reuse"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:371c962be4c4813e197bb2c67e9e729c00bce3432ec5a3a2c989dadfb54096a9",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false,
+          "field_id": 1
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true,
+          "field_id": 2
+        },
+        {
+          "name": "score",
+          "type": "int32",
+          "nullable": true,
+          "field_id": 3
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:708b86b36d475b72b8c54e566b36c370122f46a0223b087019b58152105f3d10",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false,
+          "field_id": 1
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": true,
+          "field_id": 2
+        },
+        {
+          "name": "score",
+          "type": "string",
+          "nullable": true,
+          "field_id": 4
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "remove_field",
+          "path": "score",
+          "type": "int32",
+          "nullable": true
+        },
+        {
+          "kind": "add_field",
+          "path": "score",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": false,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

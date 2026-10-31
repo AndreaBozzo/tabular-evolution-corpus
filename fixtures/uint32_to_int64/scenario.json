@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "uint32_to_int64",
+  "title": "uint32 to int64",
+  "category": "numeric",
+  "description": "A uint32 column becomes int64. Every uint32 fits in int64, so every value is unchanged. Values include 2^31 - 1, 2^31 and 2^32 - 1: the last two are outside the int32 range.",
+  "notes": [
+    "Parquet stores uint32 as physical INT32 with an unsigned Int(32) annotation, so 2^31 and 2^32 - 1 are stored as the negative INT32 bit patterns -2147483648 and -1. A reader that ignores the annotation reads those numbers."
+  ],
+  "tags": [
+    "change-type",
+    "integer",
+    "unsigned",
+    "widening",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:bbccf39d72982910040bd37e338990b8193c896b3d89aeeb9ab05bd4222413e9",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "uint32",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:97b85eb52459e096237bddfb27e8a70e5db0f3d4a2987dffe3e5c0a4b2cd790e",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "int64",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "quantity",
+          "old_type": "uint32",
+          "new_type": "int64"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from struct import pack, unpack
 from typing import Any
 
 import pyarrow as pa
@@ -26,6 +27,11 @@ def table(fields: list[pa.Field], columns: list[Any]) -> pa.Table:
 def dictionary(values: list[str], indices: list[int | None], index_type: pa.DataType = pa.int8()) -> pa.Array:
     """A string dictionary array with an exact, caller-chosen dictionary."""
     return pa.DictionaryArray.from_arrays(pa.array(indices, type=index_type), pa.array(values, type=pa.string()))
+
+
+def f32(x: float) -> float:
+    """The float32 nearest to `x`, as an exact Python float."""
+    return unpack("<f", pack("<f", x))[0]
 
 
 ID = field("id", pa.int64(), nullable=False)

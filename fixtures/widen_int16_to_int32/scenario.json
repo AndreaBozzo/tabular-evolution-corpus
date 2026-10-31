@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "widen_int16_to_int32",
+  "title": "Widen int16 to int32",
+  "category": "numeric",
+  "description": "An int16 column becomes int32. Values, including both int16 extremes, zero and a null, are unchanged.",
+  "notes": [
+    "Both are stored as physical INT32 in Parquet; only the Int logical annotation's bit width changes from 16 to 32."
+  ],
+  "tags": [
+    "change-type",
+    "integer",
+    "widening",
+    "numeric-extremes"
+  ],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:aa84194536d347a3b20ce2b040363609dab90d0759138b8bc86e73e3e8b3f483",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "int16",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:dad8e3f052629f29871469fb3fdb1038d2363241e3ad844d7fda9b415373f301",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "int32",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "quantity",
+          "old_type": "int16",
+          "new_type": "int32"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": true,
+        "value_changes": [],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

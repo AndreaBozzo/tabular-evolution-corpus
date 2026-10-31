@@ -7,7 +7,7 @@ from decimal import Decimal
 import pyarrow as pa
 
 from ..models import Scenario, Transition, Version, change_type, col, same_rows
-from ._build import ID, field, ids, table
+from ._build import ID, f32, field, ids, table
 
 D = Decimal
 
@@ -208,11 +208,70 @@ def int32_to_decimal() -> Scenario:
     )
 
 
+def widen_int16_to_int32() -> Scenario:
+    values = [-32768, -1, 0, 1, 32767, None]
+    return _numeric(
+        "widen_int16_to_int32",
+        "Widen int16 to int32",
+        "An int16 column becomes int32. Values, including both int16 extremes, zero and a null, are unchanged.",
+        ["change-type", "integer", "widening", "numeric-extremes"],
+        "quantity",
+        (pa.int16(), "int16", values),
+        (pa.int32(), "int32", values),
+        notes=[
+            "Both are stored as physical INT32 in Parquet; only the Int logical annotation's bit width changes "
+            "from 16 to 32.",
+        ],
+    )
+
+
+def uint32_to_int64() -> Scenario:
+    values = [0, 1, 2147483647, 2147483648, 4294967295, None]
+    return _numeric(
+        "uint32_to_int64",
+        "uint32 to int64",
+        (
+            "A uint32 column becomes int64. Every uint32 fits in int64, so every value is unchanged. Values "
+            "include 2^31 - 1, 2^31 and 2^32 - 1: the last two are outside the int32 range."
+        ),
+        ["change-type", "integer", "unsigned", "widening", "numeric-extremes"],
+        "quantity",
+        (pa.uint32(), "uint32", values),
+        (pa.int64(), "int64", values),
+        notes=[
+            "Parquet stores uint32 as physical INT32 with an unsigned Int(32) annotation, so 2^31 and 2^32 - 1 "
+            "are stored as the negative INT32 bit patterns -2147483648 and -1. A reader that ignores the "
+            "annotation reads those numbers.",
+        ],
+    )
+
+
+def float32_to_float64() -> Scenario:
+    values = [f32(0.1), f32(-0.0), f32(1.0), f32(3.4028234663852886e38), f32(1e-45), float("nan"), None]
+    return _numeric(
+        "float32_to_float64",
+        "Widen float32 to float64",
+        (
+            "A float32 column becomes float64. Every float32 value is exactly representable as float64 and is "
+            "unchanged, so the v1 value of 0.1 is 0.10000000149011612, not the float64 nearest to 0.1. Values "
+            "include -0.0, NaN, the largest float32 and the smallest float32 subnormal."
+        ),
+        ["change-type", "floating-point", "widening", "nan", "numeric-extremes"],
+        "reading",
+        (pa.float32(), "float", values),
+        (pa.float64(), "double", values),
+        notes=["nested_field_type_change makes the same change to two fields inside a struct."],
+    )
+
+
 SCENARIOS = [
     widen_int32_to_int64,
+    widen_int16_to_int32,
+    uint32_to_int64,
     int64_to_float64,
     float64_to_int64_integral,
     float64_to_int64_fractional,
+    float32_to_float64,
     decimal_precision_increase,
     decimal_scale_increase,
     int32_to_decimal,

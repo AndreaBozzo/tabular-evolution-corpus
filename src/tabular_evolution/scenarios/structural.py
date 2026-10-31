@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from struct import pack, unpack
-
 import pyarrow as pa
 
 from ..models import (
@@ -18,7 +16,7 @@ from ..models import (
     reorder_fields,
     same_rows,
 )
-from ._build import ID, field, ids, table
+from ._build import ID, f32, field, ids, table
 
 
 def reorder_columns() -> Scenario:
@@ -186,17 +184,12 @@ def remove_nested_field() -> Scenario:
     )
 
 
-def _f32(x: float) -> float:
-    """The float32 nearest to `x`, as an exact Python float."""
-    return unpack("<f", pack("<f", x))[0]
-
-
 def nested_field_type_change() -> Scenario:
     coords = [(0.1, -0.1), None, (45.4642, 9.19), (0.0, -0.0), (-90.0, 180.0)]
 
     def build(value_type: pa.DataType) -> pa.Table:
         position = pa.struct([pa.field("lat", value_type, nullable=False), pa.field("lon", value_type, nullable=False)])
-        rows = [None if c is None else {"lat": _f32(c[0]), "lon": _f32(c[1])} for c in coords]
+        rows = [None if c is None else {"lat": f32(c[0]), "lon": f32(c[1])} for c in coords]
         return table([ID, field("position", position)], [ids(5), rows])
 
     return Scenario(
@@ -237,10 +230,211 @@ def nested_field_type_change() -> Scenario:
     )
 
 
+def reorder_nested_fields() -> Scenario:
+    reordered = pa.struct(
+        [pa.field("postcode", pa.string()), pa.field("street", pa.string()), pa.field("city", pa.string())]
+    )
+    return Scenario(
+        scenario_id="reorder_nested_fields",
+        title="Reorder the fields inside a struct",
+        category="structural",
+        description=(
+            "The three fields of the address struct change order from street, city, postcode to postcode, "
+            "street, city. Top-level columns, names, types and values are unchanged. Rows include a null "
+            "struct, a struct whose street is null, and a struct of empty strings."
+        ),
+        notes=[
+            "A struct's fields are addressed by name, but stored in order: a reader that matches nested "
+            "fields by position pairs postcode with street.",
+        ],
+        tags=["struct", "nested", "reorder-fields", "nested-nulls"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table([ID, field("address", ADDRESS_3)], [ids(5), ADDRESSES_3]),
+                [col("id", "int64", False), col("address", ADDRESS_3_TYPE)],
+            ),
+            Version(
+                "v1",
+                lambda: table([ID, field("address", reordered)], [ids(5), ADDRESSES_3]),
+                [col("id", "int64", False), col("address", "struct<postcode: string, street: string, city: string>")],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [reorder_fields("address", ["street", "city", "postcode"], ["postcode", "street", "city"])],
+                same_rows(parquet_schema_preserved=False),
+            )
+        ],
+    )
+
+
+def drop_then_readd_column() -> Scenario:
+    names = ["Ada", "Grace", "Linus", "Barbara", "Edsger", "Frances"]
+    return Scenario(
+        scenario_id="drop_then_readd_column",
+        title="Column replaced by a different column of the same name",
+        category="structural",
+        description=(
+            "v0 has an int32 column score with field id 3. v1 has no field id 3; it has a string column, also "
+            "named score, with field id 4 and unrelated values (letter grades, a null and an empty string). "
+            "By field id this is one column removed and another added. The name and the position are the same."
+        ),
+        notes=[
+            "This is what a table history that drops a column and later adds a new one under the same name "
+            "leaves in its data files: a v0 file and a v1 file whose same-named columns are different columns.",
+            "Both files carry field ids on every column, so the field id is the evidence that the two score "
+            "columns are distinct. A reader that matches columns by name pairs them.",
+        ],
+        tags=["remove-field", "add-field", "field-id", "name-reuse"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table(
+                    [
+                        field("id", pa.int64(), nullable=False, field_id=1),
+                        field("name", pa.string(), field_id=2),
+                        field("score", pa.int32(), field_id=3),
+                    ],
+                    [ids(6), names, [90, 75, None, 0, 100, 42]],
+                ),
+                [col("id", "int64", False, 1), col("name", "string", True, 2), col("score", "int32", True, 3)],
+            ),
+            Version(
+                "v1",
+                lambda: table(
+                    [
+                        field("id", pa.int64(), nullable=False, field_id=1),
+                        field("name", pa.string(), field_id=2),
+                        field("score", pa.string(), field_id=4),
+                    ],
+                    [ids(6), names, ["A", "B", "A", None, "", "C"]],
+                ),
+                [col("id", "int64", False, 1), col("name", "string", True, 2), col("score", "string", True, 4)],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [remove_field("score", "int32", True), add_field("score", "string", True)],
+                same_rows(paths_retained=False, parquet_schema_preserved=False),
+            )
+        ],
+    )
+
+
+def rename_then_reuse_name() -> Scenario:
+    old_status = ["open", "closed", "open", None, "pending", ""]
+
+    def fields(v1: bool) -> list[pa.Field]:
+        out = [
+            field("id", pa.int64(), nullable=False, field_id=1),
+            field("legacy_status" if v1 else "status", pa.string(), field_id=2),
+            field("amount", pa.int64(), field_id=3),
+        ]
+        return out + [field("status", pa.string(), field_id=4)] if v1 else out
+
+    amounts = [10, 20, None, 0, -5, 30]
+    return Scenario(
+        scenario_id="rename_then_reuse_name",
+        title="Rename a column, then add a new column under the old name",
+        category="structural",
+        description=(
+            "Column status (field id 2) is renamed to legacy_status and keeps its values. A new string column "
+            "named status, field id 4, is appended with different values. Both status columns are strings, "
+            "so a reader that matches by name finds no type difference between them."
+        ),
+        notes=[
+            "Every column carries a field id. By field id, status in v0 is legacy_status in v1, and status in "
+            "v1 is a new column; by name, status is present in both versions with different values.",
+        ],
+        tags=["rename-field", "add-field", "field-id", "name-reuse"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table(fields(False), [ids(6), old_status, amounts]),
+                [col("id", "int64", False, 1), col("status", "string", True, 2), col("amount", "int64", True, 3)],
+            ),
+            Version(
+                "v1",
+                lambda: table(
+                    fields(True),
+                    [ids(6), old_status, amounts, ["active", "inactive", "active", "active", None, "inactive"]],
+                ),
+                [
+                    col("id", "int64", False, 1),
+                    col("legacy_status", "string", True, 2),
+                    col("amount", "int64", True, 3),
+                    col("status", "string", True, 4),
+                ],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [rename_field("status", "legacy_status", 2), add_field("status", "string", True)],
+                same_rows(paths_retained=False, parquet_schema_preserved=False),
+            )
+        ],
+    )
+
+
+def rename_case_only() -> Scenario:
+    user_ids = [101, 102, None, 103, 104, 105]
+    return Scenario(
+        scenario_id="rename_case_only",
+        title="Column name changes case only, without field ids",
+        category="structural",
+        description=(
+            "Column UserId becomes userid. The files carry no field ids, so by the corpus rules this is UserId "
+            "removed and userid added. The two columns hold the same int64 values, row for row."
+        ),
+        notes=[
+            "Readers that resolve column names case-insensitively see one column in both files; case-sensitive "
+            "readers see two different columns.",
+            "Without field ids a rename is indistinguishable from a removal and an addition, so no rename_field "
+            "is recorded (see rename_column_with_field_id).",
+        ],
+        tags=["remove-field", "add-field", "case-sensitivity", "no-field-id"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table([ID, field("UserId", pa.int64())], [ids(6), user_ids]),
+                [col("id", "int64", False), col("UserId", "int64")],
+            ),
+            Version(
+                "v1",
+                lambda: table([ID, field("userid", pa.int64())], [ids(6), user_ids]),
+                [col("id", "int64", False), col("userid", "int64")],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [remove_field("UserId", "int64", True), add_field("userid", "int64", True)],
+                same_rows(paths_retained=False, parquet_schema_preserved=False),
+            )
+        ],
+    )
+
+
 SCENARIOS = [
     reorder_columns,
     rename_column_with_field_id,
     add_nested_field,
     remove_nested_field,
     nested_field_type_change,
+    reorder_nested_fields,
+    drop_then_readd_column,
+    rename_then_reuse_name,
+    rename_case_only,
 ]
