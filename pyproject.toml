@@ -26,7 +26,7 @@ compat = ["duckdb>=1.1", "polars>=1.10", "pandas>=2.2"]
 adapters = [
     "dataprof==0.13.1",
     "deltalake==1.6.6",
-    "dlt[duckdb]>=1.32.0",
+    "dlt[duckdb]==1.32.0",
     "duckdb>=1.1",
     "polars>=1.10",
 ]

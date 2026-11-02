@@ -199,8 +199,7 @@ check fails when it is violated.
 - **Phase 2: table formats and contract tools.** Delta Lake (table writes),
   dlt (DuckDB loads under schema contracts), and dataprof (profiles and baseline
   checks) are recorded; next are Iceberg (append under each schema-evolution
-  mode), Spark (`mergeSchema`), Data Contract
-  CLI, Soda, Great Expectations.
+  mode), Spark (`mergeSchema`), Data Contract CLI, Soda, Great Expectations.
 - **Corpus growth:** row reordering, map key changes, date to timestamp
   (a new value relation), fixtures from a second Parquet
   writer (see "One writer"), CSV/JSON renderings of the same scenarios.
