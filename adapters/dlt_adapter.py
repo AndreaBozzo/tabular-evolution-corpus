@@ -8,6 +8,7 @@ Destination metadata, rather than dlt's inferred schema, describes the table.
 from __future__ import annotations
 
 import os
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -18,7 +19,7 @@ import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
 from dlt.common.schema.typing import TSchemaContract
-from dlt.load.exceptions import LoadClientJobFailed
+from dlt.load.exceptions import LoadClientJobException
 from dlt.pipeline.exceptions import PipelineStepFailed
 
 from .base import Adapter, Observation, ResultField
@@ -74,8 +75,11 @@ class DltAdapter(Adapter):
                 # Record the engine's original exception verbatim. The wrappers
                 # add random load/job identifiers and pipeline state instructions.
                 cause = error.exception
-                if isinstance(cause, LoadClientJobFailed):
+                if isinstance(cause, LoadClientJobException):
                     cause = cause.client_exception
+                # dlt's Arrow writer can remain referenced by failed frames.
+                # Release those locals before Windows removes the temp files.
+                traceback.clear_frames(cause.__traceback__)
                 raise cause from error
             finally:
                 pipeline.deactivate()

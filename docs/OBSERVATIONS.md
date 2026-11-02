@@ -25,6 +25,26 @@ rules, append with `schema_mode="merge"`, or overwrite with
 `schema_mode="overwrite"`. The resulting Delta schema and row count are
 recorded. [delta-rs documents these write modes](https://delta-io.github.io/delta-rs/usage/writing/).
 
+dlt loads each file as an Arrow table into one local DuckDB table, with a
+separate pipeline name, working directory and database for each call.
+`default` uses dlt's evolve contract, `freeze_columns` sets
+`schema_contract={"columns": "freeze"}`, and `freeze_data_type` sets
+`schema_contract={"data_type": "freeze"}`. The recorded schema, nullability
+and row count come from the destination table. `_dlt_load_id`, `_dlt_id`
+and dlt's internal tables are omitted. Error notes quote the underlying
+engine exception; pipeline and job wrappers add run-specific identifiers.
+[dlt documents the schema contracts](https://dlthub.com/docs/general-usage/schema-contracts).
+
+On dlt 1.32.0, `freeze_data_type` raises `DataValidationError` with
+"Can't evolve column type" for `nullable_to_required` and
+`required_to_nullable` in both file orders. This reproduces the 1.30.0
+observation in [#16](https://github.com/AndreaBozzo/tabular-evolution-corpus/issues/16).
+With `default` and `freeze_columns`, both scenarios append 12 rows;
+the destination retains the first file's nullability for `sku`.
+For `add_nullable_int64_column`, `default` appends 12 rows with all three
+columns. `freeze_columns` raises on the new `loyalty_points` column in
+forward order and appends 12 rows in reverse order.
+
 dataprof runs the other two. `profile_each_version` calls
 `dataprof.profile(file)` and records its inferred type (a logical type such as
 `Integer`, so never a corpus type) and null ratio per column.

@@ -58,9 +58,24 @@ def test_records_follow_the_result_schema() -> None:
         assert check_record(record, validator) == []
 
 
+def test_bookkeeping_columns_are_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NORMALIZE__PARQUET_NORMALIZER__ADD_DLT_ID", "true")
+    monkeypatch.setenv("NORMALIZE__PARQUET_NORMALIZER__ADD_DLT_LOAD_ID", "true")
+    paths = [str(ROOT / "fixtures/add_nullable_int64_column" / f"{version}.parquet") for version in ("v0", "v1")]
+    adapter = dlt_adapter.DltAdapter()
+    result = adapter.read("append_to_table", "default", paths)
+    assert {name for name, *_ in result.columns} >= {"_dlt_id", "_dlt_load_id"}
+    observation = adapter.describe(result)
+    assert observation.fields is not None
+    assert {field.name for field in observation.fields} == {"id", "name", "loyalty_points"}
+    assert observation.row_count == 12
+
+
 def test_telemetry_is_disabled() -> None:
+    from dlt.common.runtime.run_context import active
+
     additive_records()
-    assert dlt.config["runtime.dlthub_telemetry"] is False
+    assert active().runtime_config.dlthub_telemetry is False
 
 
 @pytest.mark.parametrize("scenario", ["nullable_to_required", "required_to_nullable"])
@@ -73,8 +88,20 @@ def test_data_type_freeze_covers_nullability_in_both_orders(scenario: str, versi
         dlt_adapter.DltAdapter().read("append_to_table", "freeze_data_type", paths)
 
 
-@pytest.mark.parametrize("mode", ["default", "freeze_columns"])
-def test_each_call_cleans_up_pipeline_and_database(monkeypatch: pytest.MonkeyPatch, mode: str) -> None:
+@pytest.mark.parametrize(
+    ("scenario", "mode", "versions", "exception"),
+    [
+        ("add_nullable_int64_column", "default", ("v0", "v1"), None),
+        ("add_nullable_int64_column", "freeze_columns", ("v0", "v1"), "DataValidationError"),
+        ("add_required_column", "default", ("v1", "v0"), "ArrowInvalid"),
+    ],
+)
+def test_each_call_cleans_up_pipeline_and_database(
+    monkeypatch: pytest.MonkeyPatch, scenario: str, mode: str, versions: tuple[str, str], exception: str | None
+) -> None:
+    import pyarrow as pa
+    from dlt.common.schema.exceptions import DataValidationError
+
     # dlt's nested job paths can exceed Windows' path limit under pytest's
     # per-test directory. Keep the parent as short as the adapter's own temp.
     with TemporaryDirectory(prefix="tec-test-") as parent:
@@ -83,12 +110,23 @@ def test_each_call_cleans_up_pipeline_and_database(monkeypatch: pytest.MonkeyPat
             return TemporaryDirectory(prefix=prefix, dir=parent)
 
         monkeypatch.setattr(dlt_adapter, "TemporaryDirectory", temporary_pipeline)
-        paths = [str(ROOT / "fixtures/add_nullable_int64_column" / f"{version}.parquet") for version in ("v0", "v1")]
-        if mode == "default":
+        paths = [str(ROOT / "fixtures" / scenario / f"{version}.parquet") for version in versions]
+        if exception is None:
             dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
         else:
-            from dlt.common.schema.exceptions import DataValidationError
-
-            with pytest.raises(DataValidationError):
+            kind = {"DataValidationError": DataValidationError, "ArrowInvalid": pa.ArrowInvalid}[exception]
+            with pytest.raises(kind):
                 dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
         assert list(Path(parent).iterdir()) == []
+
+
+def test_destination_error_omits_job_identifiers() -> None:
+    from dlt.destinations.exceptions import DatabaseTerminalException
+
+    paths = [str(ROOT / "fixtures/drop_then_readd_column" / f"{version}.parquet") for version in ("v0", "v1")]
+    with pytest.raises(DatabaseTerminalException) as error:
+        dlt_adapter.DltAdapter().read("append_to_table", "default", paths)
+    assert (
+        str(error.value)
+        == "Conversion Error: Could not convert string 'A' to INT32 when casting from source column score"
+    )
