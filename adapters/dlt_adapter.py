@@ -7,6 +7,7 @@ Destination metadata, rather than dlt's inferred schema, describes the table.
 
 from __future__ import annotations
 
+import gc
 import os
 import traceback
 from dataclasses import dataclass
@@ -78,8 +79,10 @@ class DltAdapter(Adapter):
                 if isinstance(cause, LoadClientJobException):
                     cause = cause.client_exception
                 # dlt's Arrow writer can remain referenced by failed frames.
-                # Release those locals before Windows removes the temp files.
+                # Release those locals and writer cycles before Windows removes
+                # the temp files (dlt-hub/dlt#4633).
                 traceback.clear_frames(cause.__traceback__)
+                gc.collect()
                 raise cause from error
             finally:
                 pipeline.deactivate()
@@ -92,7 +95,8 @@ class DltAdapter(Adapter):
 
     def describe(self, result: DltResult) -> Observation:
         fields = [
-            ResultField(name, corpus_type(duckdb.sqltype(native)), native, null == "YES")
+            # DuckDB exposes JSON's type id as varchar; JSON has no corpus type.
+            ResultField(name, None if native == "JSON" else corpus_type(duckdb.sqltype(native)), native, null == "YES")
             for name, native, null in result.columns
             if name not in {"_dlt_load_id", "_dlt_id"}
         ]

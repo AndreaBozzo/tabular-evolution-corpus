@@ -45,6 +45,18 @@ For `add_nullable_int64_column`, `default` appends 12 rows with all three
 columns. `freeze_columns` raises on the new `loyalty_points` column in
 forward order and appends 12 rows in reverse order.
 
+Nested structs, lists and maps are stored as `JSON` in the default mode;
+`JSON` has no equivalent in the corpus type vocabulary. Timestamp scenarios
+produce `TIMESTAMP WITH TIME ZONE`, also recorded with `type: null`.
+For `widen_int32_to_int64`, the destination keeps `INTEGER` in forward
+order and `BIGINT` in reverse order. `rename_case_only` stores `UserId`
+as `user_id` and retains both `user_id` and `userid` after the second load.
+
+On Windows, a dlt Arrow writer can retain an open file after a nullability
+error. The adapter releases the failed-frame locals and cycles before removing
+temporary state, preserving the original engine exception.
+This is tracked in [dlt-hub/dlt#4633](https://github.com/dlt-hub/dlt/issues/4633).
+
 dataprof runs the other two. `profile_each_version` calls
 `dataprof.profile(file)` and records its inferred type (a logical type such as
 `Integer`, so never a corpus type) and null ratio per column.

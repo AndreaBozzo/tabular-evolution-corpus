@@ -58,6 +58,18 @@ def test_records_follow_the_result_schema() -> None:
         assert check_record(record, validator) == []
 
 
+def test_nested_arrow_fields_are_stored_as_json() -> None:
+    paths = [str(ROOT / "fixtures/add_nested_field" / f"{version}.parquet") for version in ("v0", "v1")]
+    adapter = dlt_adapter.DltAdapter()
+    observation = adapter.describe(adapter.read("append_to_table", "default", paths))
+    assert observation.fields is not None
+    address = next(field for field in observation.fields if field.name == "address")
+    assert address.native_type == "JSON"
+    assert address.type is None
+    assert address.nullable is True
+    assert observation.row_count == 10
+
+
 def test_bookkeeping_columns_are_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("NORMALIZE__PARQUET_NORMALIZER__ADD_DLT_ID", "true")
     monkeypatch.setenv("NORMALIZE__PARQUET_NORMALIZER__ADD_DLT_LOAD_ID", "true")
@@ -94,6 +106,11 @@ def test_data_type_freeze_covers_nullability_in_both_orders(scenario: str, versi
         ("add_nullable_int64_column", "default", ("v0", "v1"), None),
         ("add_nullable_int64_column", "freeze_columns", ("v0", "v1"), "DataValidationError"),
         ("add_required_column", "default", ("v1", "v0"), "ArrowInvalid"),
+        ("add_required_column", "freeze_columns", ("v1", "v0"), "ArrowInvalid"),
+        ("add_required_column", "freeze_data_type", ("v1", "v0"), "ArrowInvalid"),
+        ("remove_required_column", "default", ("v0", "v1"), "ArrowInvalid"),
+        ("remove_required_column", "freeze_columns", ("v0", "v1"), "ArrowInvalid"),
+        ("remove_required_column", "freeze_data_type", ("v0", "v1"), "ArrowInvalid"),
     ],
 )
 def test_each_call_cleans_up_pipeline_and_database(
