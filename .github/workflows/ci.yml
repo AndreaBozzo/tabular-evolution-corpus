@@ -78,4 +78,4 @@ jobs:
         shell: bash
         run: |
           uv run pytest tests/test_adapters.py tests/test_deltalake_adapter.py tests/test_dlt_adapter.py tests/test_dataprof_adapter.py tests/test_report.py -q | tee pytest.out
-          grep -Eq "^[0-9]+ passed in " pytest.out
+          grep -Eq "^[0-9]+ passed(, [0-9]+ warnings?)? in " pytest.out
