@@ -17,6 +17,7 @@ from .base import Adapter
 REGISTRY: dict[str, str] = {
     "dataprof": ".dataprof_adapter:DataprofAdapter",
     "deltalake": ".deltalake_adapter:DeltaLakeAdapter",
+    "dlt": ".dlt_adapter:DltAdapter",
     "duckdb": ".duckdb_adapter:DuckDBAdapter",
     "polars": ".polars_adapter:PolarsAdapter",
     "pyarrow_dataset": ".pyarrow_adapter:PyArrowDatasetAdapter",

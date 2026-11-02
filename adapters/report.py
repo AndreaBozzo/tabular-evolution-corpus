@@ -43,6 +43,7 @@ END = "<!-- observations:end -->"
 ENGINE_NAMES = {
     "dataprof": "dataprof",
     "deltalake": "Delta Lake",
+    "dlt": "dlt",
     "duckdb": "DuckDB",
     "polars": "Polars",
     "pyarrow_dataset": "PyArrow",

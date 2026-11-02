@@ -23,6 +23,7 @@ IDENTITY = CorpusIdentity("0.1.0", "0" * 40)
 ENGINE_MODULE = {
     "dataprof": "dataprof",
     "deltalake": "deltalake",
+    "dlt": "dlt",
     "duckdb": "duckdb",
     "polars": "polars",
     "pyarrow_dataset": "pyarrow",

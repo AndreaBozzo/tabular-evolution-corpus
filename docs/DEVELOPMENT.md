@@ -196,9 +196,10 @@ check fails when it is violated.
 - **Phase 1: adapters, outside the core package.** A runner, a result
   record schema and three adapters (PyArrow Dataset, DuckDB, Polars), with
   their observations in [OBSERVATIONS.md](OBSERVATIONS.md).
-- **Phase 2: table formats and contract tools.** Delta Lake (table writes) and
-  dataprof (profiles and baseline checks) are recorded; next are Iceberg (append
-  under each schema-evolution mode), Spark (`mergeSchema`), dlt, Data Contract
+- **Phase 2: table formats and contract tools.** Delta Lake (table writes),
+  dlt (DuckDB loads under schema contracts), and dataprof (profiles and baseline
+  checks) are recorded; next are Iceberg (append under each schema-evolution
+  mode), Spark (`mergeSchema`), Data Contract
   CLI, Soda, Great Expectations.
 - **Corpus growth:** row reordering, map key changes, date to timestamp
   (a new value relation), fixtures from a second Parquet
