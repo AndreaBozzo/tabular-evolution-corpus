@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-A small corpus of versioned Parquet scenarios (one logical dataset at two or more points in time) with machine-checked manifests, plus adapters that record what engines (PyArrow, DuckDB, Polars, delta-rs) do with each transition. `DESIGN.md` is the authority on the data model; when code and `DESIGN.md` disagree, one of them needs an explicit fix.
+A small corpus of versioned Parquet scenarios (one logical dataset at two or more points in time) with machine-checked manifests, plus adapters that record what engines (PyArrow, DuckDB, Polars, delta-rs, dlt, dataprof) do with each transition. `DESIGN.md` is the authority on the data model; when code and `DESIGN.md` disagree, one of them needs an explicit fix.
 
 ## Commands
 
@@ -12,7 +12,7 @@ Run everything from the repository root with `uv`.
 
 ```bash
 uv sync                                         # core: pyarrow + jsonschema only
-uv sync --group adapters                        # + deltalake, duckdb, polars for adapters/
+uv sync --group adapters                        # + dataprof, deltalake, dlt, duckdb, polars for adapters/
 uv run pytest                                   # full suite; adapter tests skip if an engine is missing
 uv run pytest tests/test_values.py::test_name   # a single test
 uv run pytest -k int64_to_float64               # tests parametrized by scenario id
