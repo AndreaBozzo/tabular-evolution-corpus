@@ -58,6 +58,11 @@ def test_records_follow_the_result_schema() -> None:
         assert check_record(record, validator) == []
 
 
+def test_telemetry_is_disabled() -> None:
+    additive_records()
+    assert dlt.config["runtime.dlthub_telemetry"] is False
+
+
 @pytest.mark.parametrize("scenario", ["nullable_to_required", "required_to_nullable"])
 @pytest.mark.parametrize("versions", [("v0", "v1"), ("v1", "v0")])
 def test_data_type_freeze_covers_nullability_in_both_orders(scenario: str, versions: tuple[str, str]) -> None:
@@ -69,17 +74,21 @@ def test_data_type_freeze_covers_nullability_in_both_orders(scenario: str, versi
 
 
 @pytest.mark.parametrize("mode", ["default", "freeze_columns"])
-def test_each_call_cleans_up_pipeline_and_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str) -> None:
-    def temporary_pipeline(prefix: str) -> TemporaryDirectory[str]:
-        return TemporaryDirectory(prefix=prefix, dir=tmp_path)
+def test_each_call_cleans_up_pipeline_and_database(monkeypatch: pytest.MonkeyPatch, mode: str) -> None:
+    # dlt's nested job paths can exceed Windows' path limit under pytest's
+    # per-test directory. Keep the parent as short as the adapter's own temp.
+    with TemporaryDirectory(prefix="tec-test-") as parent:
 
-    monkeypatch.setattr(dlt_adapter, "TemporaryDirectory", temporary_pipeline)
-    paths = [str(ROOT / "fixtures/add_nullable_int64_column" / f"{version}.parquet") for version in ("v0", "v1")]
-    if mode == "default":
-        dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
-    else:
-        from dlt.common.schema.exceptions import DataValidationError
+        def temporary_pipeline(prefix: str) -> TemporaryDirectory[str]:
+            return TemporaryDirectory(prefix=prefix, dir=parent)
 
-        with pytest.raises(DataValidationError):
+        monkeypatch.setattr(dlt_adapter, "TemporaryDirectory", temporary_pipeline)
+        paths = [str(ROOT / "fixtures/add_nullable_int64_column" / f"{version}.parquet") for version in ("v0", "v1")]
+        if mode == "default":
             dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
-    assert list(tmp_path.iterdir()) == []
+        else:
+            from dlt.common.schema.exceptions import DataValidationError
+
+            with pytest.raises(DataValidationError):
+                dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
+        assert list(Path(parent).iterdir()) == []

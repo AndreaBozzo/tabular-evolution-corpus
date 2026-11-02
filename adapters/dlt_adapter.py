@@ -7,6 +7,7 @@ Destination metadata, rather than dlt's inferred schema, describes the table.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -41,7 +42,8 @@ class DltAdapter(Adapter):
     def read(self, operation: str, mode: str, paths: list[str]) -> DltResult:
         if operation != "append_to_table" or mode not in self.modes["append_to_table"] or len(paths) != 2:
             raise AssertionError(f"unsupported dlt call: {operation}, {mode}, {paths}")
-        dlt.config["runtime.dlthub_telemetry"] = False
+        # Set this before any config access initializes dlt's runtime.
+        os.environ["RUNTIME__DLTHUB_TELEMETRY"] = "false"
         contracts: dict[str, TSchemaContract] = {
             "freeze_columns": {"columns": "freeze"},
             "freeze_data_type": {"data_type": "freeze"},
