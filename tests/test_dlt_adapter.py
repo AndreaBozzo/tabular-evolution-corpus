@@ -147,3 +147,12 @@ def test_destination_error_omits_job_identifiers() -> None:
         str(error.value)
         == "Conversion Error: Could not convert string 'A' to INT32 when casting from source column score"
     )
+
+
+def test_schema_update_error_omits_internal_table_order() -> None:
+    from dlt.destinations.exceptions import DatabaseTransientException
+
+    paths = [str(ROOT / "fixtures/add_required_column" / f"{version}.parquet") for version in ("v0", "v1")]
+    with pytest.raises(DatabaseTransientException) as error:
+        dlt_adapter.DltAdapter().read("append_to_table", "default", paths)
+    assert str(error.value) == "Parser Error: Adding columns with constraints not yet supported"
