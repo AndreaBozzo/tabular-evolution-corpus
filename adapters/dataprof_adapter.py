@@ -16,8 +16,9 @@ that did not pass and every baseline diagnostic, in the tool's text layout
 them in its own words.
 
 dataprof infers logical types (``Integer``, ``Float``, ``String``, ``Date``,
-``Nested``) rather than physical ones, so no inferred type has a clear
-equivalent in the corpus vocabulary and ``inferred_type`` is always null.
+``Nested``), recorded as ``native_type`` in its own spelling. From 0.14 it also
+records each column's declared source type, which is the corpus type of a
+Parquet column: ``inferred_type`` is that type, and null before 0.14.
 """
 
 from __future__ import annotations
@@ -55,6 +56,17 @@ class ProfileResult:
 class CheckResult:
     exit_code: int
     gate: dict[str, Any]
+
+
+def corpus_type(native_type: dict[str, Any] | None) -> str | None:
+    """The corpus type of a column's declared source type, recorded by dataprof 0.14.
+
+    dataprof records an Arrow or Parquet column's type in Arrow's spelling,
+    which is the corpus vocabulary except that a list names its element field.
+    """
+    if not native_type or native_type.get("system") != "arrow":
+        return None
+    return str(native_type["name"]).replace("list<element: ", "list<")
 
 
 def _finding(item: dict[str, Any], status: str) -> str:
@@ -116,7 +128,7 @@ class DataprofAdapter(Adapter):
             profiles = [
                 ColumnProfile(
                     column["name"],
-                    None,
+                    corpus_type(column.get("native_type")),
                     column["data_type"],
                     column["null_count"] / column["total_count"] if column["total_count"] else None,
                 )
