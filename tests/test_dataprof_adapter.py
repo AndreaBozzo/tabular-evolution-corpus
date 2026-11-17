@@ -66,7 +66,18 @@ def test_profiles_record_native_types_and_null_ratios() -> None:
     }
     assert {p["null_ratio"] for p in profiles["v0"]} == {None}
     label = next(p for p in profiles["v1"] if p["name"] == "label")
-    assert label == {"name": "label", "inferred_type": None, "native_type": "String", "null_ratio": 0.8}
+    # From dataprof 0.14 the declared source type gives the corpus type.
+    assert label == {"name": "label", "inferred_type": "string", "native_type": "String", "null_ratio": 0.8}
+
+
+def test_corpus_type_reads_the_recorded_arrow_type() -> None:
+    assert dataprof_adapter.corpus_type({"system": "arrow", "name": "int64"}) == "int64"
+    assert (
+        dataprof_adapter.corpus_type({"system": "arrow", "name": "list<element: struct<sku: string, qty: int32>>"})
+        == "list<struct<sku: string, qty: int32>>"
+    )
+    assert dataprof_adapter.corpus_type({"system": "pandas", "name": "object"}) is None
+    assert dataprof_adapter.corpus_type(None) is None
 
 
 def test_a_check_the_tool_cannot_run_is_an_error(tmp_path: Path) -> None:
