@@ -30,6 +30,9 @@ See [using the corpus](docs/USAGE.md) for examples.
 - [Scenario inventory](docs/SCENARIOS.md) — all 44 changes, with a manifest example.
 - [Using the corpus](docs/USAGE.md) — catalog queries and fixture consumption.
 - [Engine observations](docs/OBSERVATIONS.md): PyArrow, DuckDB, Polars, Delta Lake, dlt, and dataprof.
+  Results for a corpus version can be recorded after its release tag, so an
+  adapter may exist on `main` and not in the tag. Each record's
+  `corpus_revision` names the commit it ran on.
 - [Development and releases](docs/DEVELOPMENT.md) — regeneration, contribution, and versioning.
 - [Design](DESIGN.md) — the fact model and validation rules.
 
