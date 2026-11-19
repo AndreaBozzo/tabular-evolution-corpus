@@ -1,0 +1,33 @@
+name: dlt latest
+
+# dlt ships a minor release about once a month. This runs the dlt adapter
+# tests on the newest release every week, so a release that breaks the adapter
+# shows here before a consumer runs into it. It runs on a schedule, not on
+# push, so a new dlt release does not turn a commit red. The oldest supported
+# and the pinned versions run in ci.yml.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dlt-latest:
+    name: dlt adapter on the newest dlt
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0  # no moving major tag after v7
+      - name: dlt adapter tests pass without skips
+        shell: bash
+        run: |
+          uv run --no-project --refresh --with . --with 'dlt[duckdb]' --with pytest \
+            python -c "import dlt, duckdb; print('dlt', dlt.__version__, 'duckdb', duckdb.__version__)"
+          uv run --no-project --with . --with 'dlt[duckdb]' --with pytest \
+            python -m pytest tests/test_dlt_adapter.py -q | tee pytest.out
+          grep -Eq "^[0-9]+ passed(, [0-9]+ warnings?)? in " pytest.out

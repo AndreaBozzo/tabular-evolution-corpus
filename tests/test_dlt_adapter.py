@@ -162,11 +162,29 @@ def test_telemetry_is_disabled() -> None:
 def test_data_type_freeze_covers_nullability_in_both_orders(
     mode: str, scenario: str, versions: tuple[str, str]
 ) -> None:
+    """From dlt 1.22, a data_type freeze rejects a change of nullability.
+
+    Before 1.22 a data_type freeze accepts it. If columns are frozen too, the
+    columns contract rejects it instead; 1.20 words it as adding the column
+    and 1.21 as evolving it. The test asserts each case, so a run on the
+    oldest supported dlt checks the adapter there.
+    """
     from dlt.common.schema.exceptions import DataValidationError
 
     paths = [str(ROOT / "fixtures" / scenario / f"{version}.parquet") for version in versions]
-    with pytest.raises(DataValidationError, match="Can't evolve column type"):
+    if _dlt_release() >= (1, 22):
+        with pytest.raises(DataValidationError, match="Can't evolve column type"):
+            dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
+    elif mode == "freeze_columns_and_data_type":
+        with pytest.raises(DataValidationError, match="Contract on `columns` with `contract_mode=freeze` is violated"):
+            dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
+    else:
         dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
+
+
+def _dlt_release() -> tuple[int, int]:
+    major, minor = dlt.__version__.split(".")[:2]
+    return int(major), int(minor)
 
 
 @pytest.mark.parametrize(

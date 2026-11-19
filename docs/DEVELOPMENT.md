@@ -126,6 +126,14 @@ uv run --no-project --with . --with 'dlt[duckdb]==1.26.0' --with 'duckdb==1.5.5'
   python -m adapters.runner dlt --output /tmp/dlt-1.26.0.jsonl
 ```
 
+The dlt adapter supports dlt 1.20.0 and later. CI runs its tests on 1.20.0
+and on the pinned version for every push, and on the newest dlt release
+every week (`.github/workflows/dlt-latest.yml`). Before 1.20, dlt keeps only
+the message of a failed destination job, not its exception, so records would
+name a different error class. Before 1.22, a `data_type` freeze accepts a
+change of nullability, and with columns frozen too the columns contract
+rejects it. `tests/test_dlt_adapter.py` asserts each case.
+
 The default output is `results/<corpus version>/<adapter>.jsonl`.
 Use `--output PATH` with one adapter to keep separate runs. Relative output
 paths are resolved from the current directory. Use `--scenarios ID ...` to

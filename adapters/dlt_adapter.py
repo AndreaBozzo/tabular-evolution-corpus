@@ -1,4 +1,10 @@
-"""dlt: load Arrow versions into a fresh local DuckDB or Parquet destination."""
+"""dlt: load Arrow versions into a fresh local DuckDB or Parquet destination.
+
+Supports dlt 1.20.0 and later. CI tests the oldest supported release and the
+pinned one on every push, and the newest release weekly. Before 1.20,
+``LoadClientJobFailed`` keeps only the destination's message, not its
+exception, so records would name a different error class.
+"""
 
 from __future__ import annotations
 
