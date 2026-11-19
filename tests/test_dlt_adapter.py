@@ -109,6 +109,27 @@ def test_hints_come_from_dlt_schema() -> None:
     assert price["scale"] == 2
 
 
+def test_nested_type_hints_do_not_depend_on_the_operating_system() -> None:
+    """dlt gzips a nested column's Arrow schema; the gzip header's OS byte is
+    10 on Windows and 3 on Linux. The recorded hint is the decoded type."""
+    import base64
+    import gzip
+
+    import pyarrow as pa
+
+    field = pa.field("c", pa.list_(pa.struct([("sku", pa.string()), ("qty", pa.int32())])))
+    ipc = pa.schema([field]).serialize().to_pybytes()
+    encoded = []
+    for os_byte in (3, 10):
+        raw = bytearray(gzip.compress(ipc, mtime=0))
+        raw[9] = os_byte
+        encoded.append("arrow-ipc:" + base64.b64encode(bytes(raw)).decode("ascii"))
+    assert encoded[0] != encoded[1]
+    decoded = {dlt_adapter._hint_value(value) for value in encoded}
+    assert decoded == {"arrow-ipc:" + str(field.type)}
+    assert dlt_adapter._hint_value("bigint") == "bigint"
+
+
 def test_records_follow_the_result_schema() -> None:
     validator = result_validator(ROOT)
     for record in additive_records():

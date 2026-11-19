@@ -66,7 +66,10 @@ nullability and row count come from that readback or from the DuckDB table.
 In format 1.3, `engine_schema_hints` records dlt's stored attributes for each
 column in `result_schema`, keyed by its destination name. These attributes
 include `data_type` and, when dlt stores them, `precision`, `scale`,
-`nullable`, or `primary_key`. The destination schema and dlt's schema
+`nullable`, or `primary_key`. For a nested column, dlt stores its Arrow type as
+`x-nested-type`, a gzip-compressed Arrow schema whose header names the
+operating system. The record keeps the decoded type, `arrow-ipc:<type>`, so
+it is the same on every platform. The destination schema and dlt's schema
 can report different details for the same column. dlt bookkeeping columns
 and internal tables are omitted. Error notes quote the underlying engine
 exception. [dlt schema contracts](https://dlthub.com/docs/general-usage/schema-contracts).

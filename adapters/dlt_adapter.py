@@ -8,7 +8,9 @@ exception, so records would name a different error class.
 
 from __future__ import annotations
 
+import base64
 import gc
+import gzip
 import os
 import traceback
 from dataclasses import dataclass
@@ -52,6 +54,21 @@ DISPOSITIONS: dict[str, TWriteDisposition] = {
     "merge_into_table": "merge",
 }
 BOOKKEEPING_COLUMNS = {"_dlt_load_id", "_dlt_id", "_dlt_root_id", "_dlt_parent_id", "_dlt_list_idx"}
+
+
+ARROW_IPC_PREFIX = "arrow-ipc:"
+
+
+def _hint_value(value: Any) -> Any:
+    """A stored hint as recorded. dlt keeps a nested column's Arrow type as
+    ``arrow-ipc:`` + base64 of a gzip-compressed IPC schema. The gzip header
+    names the operating system, so the same type gives different bytes on
+    Windows and Linux. The record keeps the Arrow type the hint encodes."""
+    if not (isinstance(value, str) and value.startswith(ARROW_IPC_PREFIX)):
+        return value
+    ipc = gzip.decompress(base64.b64decode(value[len(ARROW_IPC_PREFIX) :]))
+    schema = pa.ipc.read_schema(pa.py_buffer(ipc))
+    return ARROW_IPC_PREFIX + str(schema.field(0).type)
 
 
 @dataclass(frozen=True)
@@ -115,7 +132,7 @@ class DltAdapter(Adapter):
                     else:
                         pipeline.run(data)
                 schema_hints = {
-                    name: {key: value for key, value in column.items() if key != "name"}
+                    name: {key: _hint_value(value) for key, value in column.items() if key != "name"}
                     for name, column in pipeline.default_schema.get_table_columns("versions").items()
                 }
                 if filesystem:
