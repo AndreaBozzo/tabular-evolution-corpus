@@ -33,7 +33,7 @@ from .base import OPERATIONS, SINGLE_VERSION_OPERATIONS, Adapter
 
 RESULT_SCHEMA = Path("schema") / "result.schema.json"
 RESULTS_DIR = Path("results")
-RECORD_VERSION = "1.2"
+RECORD_VERSION = "1.3"
 RECORD_KEY_FIELDS = ("adapter", "scenario_id", "from", "to", "operation", "mode", "inputs")
 DIRTY_SUFFIX = "-dirty"
 _MACHINES = {"amd64": "x86_64", "aarch64": "arm64"}
@@ -124,6 +124,7 @@ def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> d
             "exit_code": None,
             "findings": [],
             "column_profiles": None,
+            "dlt_schema_hints": None,
             "error_class": f"{kind.__module__}.{kind.__qualname__}",
             "notes": [message] if message else [],
         }
@@ -145,6 +146,7 @@ def _outcome(adapter: Adapter, operation: str, mode: str, paths: list[str]) -> d
         "exit_code": seen.exit_code,
         "findings": seen.findings,
         "column_profiles": [p.to_record() for p in seen.column_profiles] if seen.column_profiles is not None else None,
+        "dlt_schema_hints": seen.dlt_schema_hints,
         "error_class": None,
         "notes": unmapped + seen.notes,
     }
@@ -165,6 +167,9 @@ def check_record(record: dict[str, Any], validator: Validator) -> list[str]:
         expected = _inputs(record["operation"], record["from"], record["to"])
         if record["inputs"] not in expected:
             problems.append(f"inputs {record['inputs']} are not one of {expected}")
+        hints = record.get("dlt_schema_hints")
+        if hints is not None and hints.keys() != {field["name"] for field in record["result_schema"]}:
+            problems.append("dlt_schema_hints keys differ from result_schema field names")
     return problems
 
 

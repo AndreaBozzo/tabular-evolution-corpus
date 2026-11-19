@@ -40,15 +40,36 @@ rules, append with `schema_mode="merge"`, or overwrite with
 `schema_mode="overwrite"`. The resulting Delta schema and row count are
 recorded. [delta-rs documents these write modes](https://delta-io.github.io/delta-rs/usage/writing/).
 
-dlt loads each file as an Arrow table into one local DuckDB table, with a
-separate pipeline name, working directory and database for each call.
-`default` uses dlt's evolve contract, `freeze_columns` sets
-`schema_contract={"columns": "freeze"}`, and `freeze_data_type` sets
-`schema_contract={"data_type": "freeze"}`. The recorded schema, nullability
-and row count come from the destination table. `_dlt_load_id`, `_dlt_id`
-and dlt's internal tables are omitted. Error notes quote the underlying
-engine exception; pipeline and job wrappers add run-specific identifiers.
-[dlt documents the schema contracts](https://dlthub.com/docs/general-usage/schema-contracts).
+dlt loads each file as an Arrow table into a fresh local destination.
+Each call uses its own pipeline name and working directory. For DuckDB
+appends, `default` uses dlt's default contract. The named modes set the
+following contract entities.
+
+| Mode | Tables | Columns | Data type |
+| --- | --- | --- | --- |
+| `freeze_columns` | default | freeze | default |
+| `freeze_data_type` | default | default | freeze |
+| `freeze_columns_and_data_type` | default | freeze | freeze |
+| `evolve_columns_freeze_data_type` | default | evolve | freeze |
+| `evolve_all` | evolve | evolve | evolve |
+
+`replace_table` and `merge_into_table` use DuckDB and dlt's default
+contract. Each load uses the record's write disposition. Merge takes its
+primary key from the manifest's `row_identity` when it has columns. For
+position-based scenarios, dlt receives merge without a primary key.
+
+`filesystem` appends to a local filesystem destination in Parquet with
+dlt's default contract. PyArrow reads the loaded Parquet files and
+concatenates them with permissive schema promotion. The recorded schema,
+nullability and row count come from that readback or from the DuckDB table.
+
+In format 1.3, `dlt_schema_hints` records dlt's stored attributes for each
+column in `result_schema`, keyed by its destination name. These attributes
+include `data_type` and, when dlt stores them, `precision`, `scale`,
+`nullable`, or `primary_key`. The destination schema and dlt's schema
+can report different details for the same column. dlt bookkeeping columns
+and internal tables are omitted. Error notes quote the underlying engine
+exception. [dlt schema contracts](https://dlthub.com/docs/general-usage/schema-contracts).
 
 On dlt 1.32.0, `freeze_data_type` raises `DataValidationError` with
 "Can't evolve column type" for `nullable_to_required` and

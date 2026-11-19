@@ -20,9 +20,12 @@ OPERATIONS = (
     "read_each_version",
     "read_versions_together",
     "append_to_table",
+    "replace_table",
+    "merge_into_table",
     "check_against_contract",
     "profile_each_version",
 )
+TABLE_WRITE_OPERATIONS = ("append_to_table", "replace_table", "merge_into_table")
 SINGLE_VERSION_OPERATIONS = frozenset({"read_each_version", "profile_each_version"})
 
 
@@ -61,6 +64,7 @@ class Observation:
     exit_code: int | None = None
     findings: list[str] = field(default_factory=list)
     column_profiles: list[ColumnProfile] | None = None
+    dlt_schema_hints: dict[str, dict[str, Any]] | None = None
 
 
 class Adapter(ABC):

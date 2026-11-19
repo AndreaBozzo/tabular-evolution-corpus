@@ -255,7 +255,7 @@ mode and emits one result record per engine call, validated against
 the manifest):
 
 ```json
-{"schema_version": "1.2", "corpus_version": "0.3.0", "corpus_revision": "<40-hex commit>",
+{"schema_version": "1.3", "corpus_version": "0.3.0", "corpus_revision": "<40-hex commit>",
  "scenario_id": "timestamp_naive_to_utc", "from": "v0", "to": "v1", "inputs": ["v0", "v1"],
  "adapter": "duckdb", "adapter_version": "1.5.5", "platform": "linux-x86_64",
  "operation": "read_versions_together", "mode": "union_by_name",
@@ -263,7 +263,7 @@ the manifest):
  "result_schema": [{"name": "event_time", "type": null,
                     "native_type": "TIMESTAMP WITH TIME ZONE", "nullable": null}],
  "row_count": 10, "exit_code": null, "findings": [], "column_profiles": null,
- "error_class": null, "notes": []}
+ "dlt_schema_hints": null, "error_class": null, "notes": []}
 ```
 
 - **Corpus identity.** `corpus_version` names a release; `corpus_revision`
@@ -294,6 +294,13 @@ the manifest):
   `column_profiles`. Empty files have a null ratio of null. The stored type
   stays in the manifest and joins by scenario and input version. delta-rs
   records `append_to_table`; dataprof records the other two.
+- **Table writes and hints (format 1.3).** `replace_table` and
+  `merge_into_table` create a table from the first input and write the
+  second using the named disposition. A successful result records the
+  destination's schema and row count. dlt's `filesystem` append mode reads
+  back the Parquet files. A successful dlt result records its stored column
+  attributes in `dlt_schema_hints`, keyed by the names in `result_schema`.
+  Other results in this format carry null.
 - **Types.** `type` is the corpus type vocabulary where the engine's type has
   a clear equivalent, otherwise null; `native_type` is always the engine's own
   spelling. `nullable` is null for engines that record no nullability. A

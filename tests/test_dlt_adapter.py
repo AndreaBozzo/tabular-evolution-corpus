@@ -24,7 +24,19 @@ def additive_records() -> list[dict[str, Any]]:
 
 
 def test_declared_modes() -> None:
-    assert dlt_adapter.DltAdapter.modes == {"append_to_table": ("default", "freeze_columns", "freeze_data_type")}
+    assert dlt_adapter.DltAdapter.modes == {
+        "append_to_table": (
+            "default",
+            "freeze_columns",
+            "freeze_data_type",
+            "freeze_columns_and_data_type",
+            "evolve_columns_freeze_data_type",
+            "evolve_all",
+            "filesystem",
+        ),
+        "replace_table": ("default",),
+        "merge_into_table": ("default",),
+    }
 
 
 def test_evolve_appends_versions_and_reports_destination_metadata() -> None:
@@ -52,10 +64,59 @@ def test_freeze_columns_records_the_engine_message_verbatim() -> None:
     assert reversed_["row_count"] == 12
 
 
+def test_combined_contracts_handle_added_columns() -> None:
+    forward = {
+        r["mode"]: r for r in additive_records() if r["operation"] == "append_to_table" and r["inputs"] == ["v0", "v1"]
+    }
+    both_frozen = forward["freeze_columns_and_data_type"]
+    assert both_frozen["status"] == "error"
+    assert "`columns` are frozen" in both_frozen["notes"][0]
+    for mode in ("evolve_columns_freeze_data_type", "evolve_all"):
+        assert forward[mode]["status"] == "success"
+        assert forward[mode]["row_count"] == 12
+        assert forward[mode]["result_schema"][-1]["name"] == "loyalty_points"
+
+
+@pytest.mark.parametrize(("operation", "rows"), [("replace_table", 4), ("merge_into_table", 6)])
+def test_write_disposition_uses_second_input(operation: str, rows: int) -> None:
+    paths = [str(ROOT / "fixtures/rows_deleted" / f"{version}.parquet") for version in ("v0", "v1")]
+    adapter = dlt_adapter.DltAdapter()
+    observation = adapter.describe(adapter.read(operation, "default", paths))
+    assert observation.row_count == rows
+
+
+def test_filesystem_reads_back_parquet() -> None:
+    record = next(r for r in additive_records() if r["mode"] == "filesystem" and r["inputs"] == ["v0", "v1"])
+    assert record["status"] == "success", record
+    assert record["row_count"] == 12
+    assert record["result_schema"] == [
+        {"name": "id", "type": "int64", "native_type": "int64", "nullable": False},
+        {"name": "name", "type": "string", "native_type": "string", "nullable": True},
+        {"name": "loyalty_points", "type": "int64", "native_type": "int64", "nullable": True},
+    ]
+
+
+def test_hints_come_from_dlt_schema() -> None:
+    paths = [str(ROOT / "fixtures/decimal_precision_increase" / f"{version}.parquet") for version in ("v0", "v1")]
+    adapter = dlt_adapter.DltAdapter()
+    observation = adapter.describe(adapter.read("append_to_table", "default", paths))
+    assert observation.fields is not None
+    assert next(field.native_type for field in observation.fields if field.name == "price") == "DECIMAL(9,2)"
+    assert observation.dlt_schema_hints is not None
+    price = observation.dlt_schema_hints["price"]
+    assert price["data_type"] == "decimal"
+    assert price["precision"] == 18
+    assert price["scale"] == 2
+
+
 def test_records_follow_the_result_schema() -> None:
     validator = result_validator(ROOT)
     for record in additive_records():
         assert check_record(record, validator) == []
+        if record["status"] == "success":
+            assert record["dlt_schema_hints"]["id"]["data_type"] == "bigint"
+        else:
+            assert record["dlt_schema_hints"] is None
 
 
 def test_nested_arrow_fields_are_stored_as_json() -> None:
@@ -76,11 +137,14 @@ def test_bookkeeping_columns_are_omitted(monkeypatch: pytest.MonkeyPatch) -> Non
     paths = [str(ROOT / "fixtures/add_nullable_int64_column" / f"{version}.parquet") for version in ("v0", "v1")]
     adapter = dlt_adapter.DltAdapter()
     result = adapter.read("append_to_table", "default", paths)
+    assert isinstance(result.columns, list)
     assert {name for name, *_ in result.columns} >= {"_dlt_id", "_dlt_load_id"}
     observation = adapter.describe(result)
     assert observation.fields is not None
     assert {field.name for field in observation.fields} == {"id", "name", "loyalty_points"}
     assert observation.row_count == 12
+    assert observation.dlt_schema_hints is not None
+    assert set(observation.dlt_schema_hints) == {"id", "name", "loyalty_points"}
 
 
 def test_telemetry_is_disabled() -> None:
@@ -90,14 +154,19 @@ def test_telemetry_is_disabled() -> None:
     assert active().runtime_config.dlthub_telemetry is False
 
 
+@pytest.mark.parametrize(
+    "mode", ["freeze_data_type", "freeze_columns_and_data_type", "evolve_columns_freeze_data_type"]
+)
 @pytest.mark.parametrize("scenario", ["nullable_to_required", "required_to_nullable"])
 @pytest.mark.parametrize("versions", [("v0", "v1"), ("v1", "v0")])
-def test_data_type_freeze_covers_nullability_in_both_orders(scenario: str, versions: tuple[str, str]) -> None:
+def test_data_type_freeze_covers_nullability_in_both_orders(
+    mode: str, scenario: str, versions: tuple[str, str]
+) -> None:
     from dlt.common.schema.exceptions import DataValidationError
 
     paths = [str(ROOT / "fixtures" / scenario / f"{version}.parquet") for version in versions]
     with pytest.raises(DataValidationError, match="Can't evolve column type"):
-        dlt_adapter.DltAdapter().read("append_to_table", "freeze_data_type", paths)
+        dlt_adapter.DltAdapter().read("append_to_table", mode, paths)
 
 
 @pytest.mark.parametrize(

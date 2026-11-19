@@ -112,6 +112,27 @@ def test_phase_two_errors_validate_without_success_outputs() -> None:
         assert list(VALIDATOR.iter_errors(record)) == []
 
 
+@pytest.mark.parametrize("operation", ["replace_table", "merge_into_table"])
+def test_dlt_table_operations_and_hints_follow_record_version(operation: str) -> None:
+    record = with_changes(
+        SUCCESS,
+        adapter="dlt",
+        operation=operation,
+        schema_version="1.3",
+        dlt_schema_hints={"id": {"data_type": "bigint", "precision": 64}, "event_time": {"data_type": "timestamp"}},
+    )
+    assert check_record(record, VALIDATOR) == []
+    assert check_record(with_changes(record, schema_version="1.2"), VALIDATOR)
+    assert check_record(with_changes(record, dlt_schema_hints=None), VALIDATOR)
+    assert check_record(with_changes(record, dlt_schema_hints={"id": {}}), VALIDATOR)
+    assert check_record(with_changes(record, dlt_schema_hints={**record["dlt_schema_hints"], "other": {}}), VALIDATOR)
+    assert check_record(with_changes(record, adapter="duckdb"), VALIDATOR)
+    assert check_record(with_changes(record, dlt_schema_hints={"id": 64}), VALIDATOR)
+    del record["dlt_schema_hints"]
+    assert check_record(record, VALIDATOR)
+    assert check_record(with_changes(record, schema_version="1.2"), VALIDATOR)
+
+
 def test_nonfinite_profile_ratio_is_rejected_as_non_json() -> None:
     record = with_changes(
         SUCCESS,

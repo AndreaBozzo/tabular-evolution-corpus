@@ -29,8 +29,8 @@
   ],
   "properties": {
     "schema_version": {
-      "description": "Version of this record format, independent of the manifest schema_version. 1.2 added Phase 2 operations and their outcome fields.",
-      "const": "1.2"
+      "description": "Version of this record format, independent of the manifest schema_version. 1.3 adds replace, merge and dlt schema hints.",
+      "enum": ["1.2", "1.3"]
     },
     "corpus_version": {
       "description": "The corpus release the fixtures belong to, e.g. 0.1.0.",
@@ -63,8 +63,8 @@
       "pattern": "^[a-z0-9]+-[a-z0-9_]+$"
     },
     "operation": {
-      "description": "Read each version, read both as one dataset, append `to` to a table created from `from`, check `to` against a contract derived from `from`, or profile each version separately.",
-      "enum": ["read_each_version", "read_versions_together", "append_to_table", "check_against_contract", "profile_each_version"]
+      "description": "Read each version, read both as one dataset, write the second input to a table created from the first with append, replace or merge, check `to` against a contract derived from `from`, or profile each version separately.",
+      "enum": ["read_each_version", "read_versions_together", "append_to_table", "replace_table", "merge_into_table", "check_against_contract", "profile_each_version"]
     },
     "mode": {
       "description": "The engine-specific variant of the operation, e.g. union_by_name, positional, unified_permissive, diagonal_relaxed; `default` when the engine's default behaviour is used.",
@@ -93,6 +93,11 @@
       "type": ["array", "null"],
       "items": { "$ref": "#/$defs/column_profile" }
     },
+    "dlt_schema_hints": {
+      "description": "Stored dlt column attributes keyed by the loaded column names. Null for other adapters or errors.",
+      "type": ["object", "null"],
+      "additionalProperties": { "type": "object" }
+    },
     "error_class": {
       "description": "Qualified class name of the exception the engine raised; null when status is success.",
       "type": ["string", "null"],
@@ -105,6 +110,32 @@
     }
   },
   "allOf": [
+    {
+      "if": { "properties": { "schema_version": { "const": "1.2" } } },
+      "then": {
+        "properties": {
+          "operation": { "not": { "enum": ["replace_table", "merge_into_table"] } },
+          "dlt_schema_hints": false
+        }
+      },
+      "else": { "required": ["dlt_schema_hints"] }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": { "const": "1.3" },
+          "adapter": { "const": "dlt" },
+          "status": { "const": "success" }
+        }
+      },
+      "then": {
+        "properties": {
+          "operation": { "enum": ["append_to_table", "replace_table", "merge_into_table"] },
+          "dlt_schema_hints": { "type": "object" }
+        }
+      },
+      "else": { "properties": { "dlt_schema_hints": { "type": "null" } } }
+    },
     {
       "if": { "properties": { "status": { "const": "success" } } },
       "then": {
@@ -132,7 +163,7 @@
       "if": {
         "properties": {
           "status": { "const": "success" },
-          "operation": { "enum": ["read_each_version", "read_versions_together", "append_to_table"] }
+          "operation": { "enum": ["read_each_version", "read_versions_together", "append_to_table", "replace_table", "merge_into_table"] }
         }
       },
       "then": {

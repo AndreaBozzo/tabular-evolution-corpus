@@ -34,7 +34,7 @@ from typing import Any
 from tabular_evolution.generate import MANIFEST
 from tabular_evolution.validate import load_json, scenario_dirs
 
-from .base import OPERATIONS
+from .base import OPERATIONS, TABLE_WRITE_OPERATIONS
 from .runner import RESULTS_DIR, CorpusError, read_recorded_results
 
 OBSERVATIONS = Path("docs") / "OBSERVATIONS.md"
@@ -298,11 +298,15 @@ def render(root: Path, results_dir: Path) -> str:
         *_table(["transition", *(ENGINE_NAMES.get(a, a) for a, _ in modes["read_each_version"])], each_rows),
         "",
     ]
-    table_adapters = [a for a, rs in by_adapter.items() if any(r["operation"] == "append_to_table" for r in rs)]
-    for adapter in table_adapters:
-        adapter_modes = [mode for a, mode in modes["append_to_table"] if a == adapter]
+    table_calls = [
+        (operation, adapter, [mode for a, mode in modes[operation] if a == adapter])
+        for adapter in by_adapter
+        for operation in TABLE_WRITE_OPERATIONS
+        if any(a == adapter for a, _ in modes[operation])
+    ]
+    for operation, adapter, adapter_modes in table_calls:
         swapped = any(
-            _in_order(grouped[key][("append_to_table", adapter, mode)], [key[2], key[1]]) is not None
+            _in_order(grouped[key][(operation, adapter, mode)], [key[2], key[1]]) is not None
             for key in grouped
             for mode in adapter_modes
         )
@@ -315,7 +319,7 @@ def render(root: Path, results_dir: Path) -> str:
             sid, from_, to = key
             focus = _focus(transition(key))
             records_for_columns = [
-                _record(grouped[key][("append_to_table", adapter, mode)], [to, from_] if rev else [from_, to])
+                _record(grouped[key][(operation, adapter, mode)], [to, from_] if rev else [from_, to])
                 for mode, rev in columns
             ]
             for column, record in zip(columns, records_for_columns, strict=True):
@@ -333,9 +337,10 @@ def render(root: Path, results_dir: Path) -> str:
             if swapped
             else ""
         )
+        title = "table writes" if operation == "append_to_table" else operation.replace("_", " ")
         out.extend(
             [
-                f"**{name} table writes.** Each call creates a fresh table from `from`; "
+                f"**{name} {title}.** Each call creates a fresh table from `from`; "
                 "the mode then brings in `to`. Cells show the final row count and touched top-level field types, "
                 f"or the error class.{reversed_note} {counts}.",
                 "",

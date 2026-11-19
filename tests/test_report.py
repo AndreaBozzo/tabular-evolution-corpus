@@ -13,8 +13,9 @@ from conftest import ROOT
 from test_adapters import ENGINE_MODULE
 
 from adapters import REGISTRY, load_adapter
-from adapters.report import _order_dependent, _relative, latest_results, main
+from adapters.report import _order_dependent, _relative, latest_results, main, render
 from adapters.runner import (
+    RECORD_VERSION,
     CorpusError,
     CorpusIdentity,
     check_record,
@@ -64,7 +65,7 @@ def test_recorded_reader_rejects_dirty_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", FILES, ids=[p.stem for p in FILES])
-def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> None:
+def test_committed_records_reproduce_with_the_installed_engine(path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     records = read_results(path)
     first = records[0]
     if first["corpus_version"] != __version__:
@@ -82,7 +83,23 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> No
     if here.split("-")[1] != first["platform"].split("-")[1]:
         pytest.skip(f"recorded on {first['platform']}, running on {here}")
     identity = CorpusIdentity(first["corpus_version"], first["corpus_revision"])
+    legacy = first["schema_version"] == "1.2" and first["schema_version"] != RECORD_VERSION
+    if legacy:
+        # Replay the operation and mode matrix that was published with format 1.2.
+        recorded_modes = {(r["operation"], r["mode"]) for r in records}
+        monkeypatch.setattr(
+            adapter,
+            "modes",
+            {
+                operation: tuple(mode for mode in modes if (operation, mode) in recorded_modes)
+                for operation, modes in adapter.modes.items()
+            },
+        )
     fresh = [{**r, "platform": first["platform"]} for r in observe(ROOT, adapter, identity)]
+    if legacy:
+        for record in fresh:
+            record.pop("dlt_schema_hints")
+            record["schema_version"] = first["schema_version"]
     differing = [record_key(old) for old, new in zip(records, fresh, strict=False) if old != new]
     assert len(fresh) == len(records)
     assert differing == []
@@ -90,6 +107,34 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> No
 
 def test_observation_tables_are_generated_from_the_results() -> None:
     assert main(["--root", str(ROOT), "--check"]) == 0
+
+
+def test_observation_tables_include_replace_and_merge(tmp_path: Path) -> None:
+    source = next(p for p in FILES if p.stem == "dlt")
+    sid = "add_nullable_int64_column"
+    shutil.copytree(ROOT / "fixtures" / sid, tmp_path / "fixtures" / sid)
+    append = [
+        r
+        for r in read_results(source)
+        if r["scenario_id"] == sid and r["mode"] == "default" and r["operation"] == "append_to_table"
+    ]
+    assert append
+    records = [
+        {
+            **record,
+            "operation": operation,
+            "schema_version": "1.3",
+            "dlt_schema_hints": {field["name"]: {} for field in record["result_schema"]},
+        }
+        for operation in ("append_to_table", "replace_table", "merge_into_table")
+        for record in append
+    ]
+    assert all(check_record(record, result_validator(ROOT)) == [] for record in records)
+    results_dir = tmp_path / "results"
+    write_results(results_dir / "dlt.jsonl", records)
+    report = render(tmp_path, results_dir)
+    assert "**dlt replace table.**" in report
+    assert "**dlt merge into table.**" in report
 
 
 def test_observation_check_detects_a_stale_table(tmp_path: Path) -> None:

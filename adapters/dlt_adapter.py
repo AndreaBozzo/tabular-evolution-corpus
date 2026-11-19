@@ -1,9 +1,4 @@
-"""dlt: append Arrow versions to a fresh local DuckDB destination.
-
-``default`` uses the evolve contract; ``freeze_columns`` and
-``freeze_data_type`` set the corresponding schema entity to freeze.
-Destination metadata, rather than dlt's inferred schema, describes the table.
-"""
+"""dlt: load Arrow versions into a fresh local DuckDB or Parquet destination."""
 
 from __future__ import annotations
 
@@ -13,18 +8,24 @@ import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 from uuid import uuid4
 
 import dlt
 import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
-from dlt.common.schema.typing import TSchemaContract
+from dlt.common.schema.typing import TSchemaContract, TWriteDisposition
+from dlt.destinations.impl.filesystem.filesystem import FilesystemClient
 from dlt.load.exceptions import LoadClientJobException
 from dlt.pipeline.exceptions import PipelineStepFailed
 
+from tabular_evolution.generate import MANIFEST
+from tabular_evolution.validate import load_json
+
 from .base import Adapter, Observation, ResultField
-from .duckdb_adapter import corpus_type
+from .duckdb_adapter import corpus_type as duckdb_type
+from .pyarrow_adapter import corpus_type as arrow_type
 
 try:
     from dlt.common.destination.exceptions import SchemaUpdateError
@@ -32,35 +33,60 @@ except ImportError:
     SchemaUpdateError = None  # dlt before 1.30 raises the schema error directly.
 
 
+CONTRACTS: dict[str, TSchemaContract] = {
+    "freeze_columns": {"columns": "freeze"},
+    "freeze_data_type": {"data_type": "freeze"},
+    "freeze_columns_and_data_type": {"columns": "freeze", "data_type": "freeze"},
+    "evolve_columns_freeze_data_type": {"columns": "evolve", "data_type": "freeze"},
+    "evolve_all": {"tables": "evolve", "columns": "evolve", "data_type": "evolve"},
+}
+DISPOSITIONS: dict[str, TWriteDisposition] = {
+    "append_to_table": "append",
+    "replace_table": "replace",
+    "merge_into_table": "merge",
+}
+BOOKKEEPING_COLUMNS = {"_dlt_load_id", "_dlt_id", "_dlt_root_id", "_dlt_parent_id", "_dlt_list_idx"}
+
+
 @dataclass(frozen=True)
 class DltResult:
-    columns: list[tuple[str, str, str]]
+    columns: list[tuple[str, str, str]] | pa.Schema
     row_count: int
+    schema_hints: dict[str, dict[str, Any]]
 
 
 class DltAdapter(Adapter):
     name = "dlt"
-    modes = {"append_to_table": ("default", "freeze_columns", "freeze_data_type")}
+    modes = {
+        "append_to_table": ("default", *CONTRACTS, "filesystem"),
+        "replace_table": ("default",),
+        "merge_into_table": ("default",),
+    }
 
     @property
     def version(self) -> str:
         return dlt.__version__
 
     def read(self, operation: str, mode: str, paths: list[str]) -> DltResult:
-        if operation != "append_to_table" or mode not in self.modes["append_to_table"] or len(paths) != 2:
+        if mode not in self.modes.get(operation, ()) or len(paths) != 2:
             raise AssertionError(f"unsupported dlt call: {operation}, {mode}, {paths}")
         # Set this before any config access initializes dlt's runtime.
         os.environ["RUNTIME__DLTHUB_TELEMETRY"] = "false"
-        contracts: dict[str, TSchemaContract] = {
-            "freeze_columns": {"columns": "freeze"},
-            "freeze_data_type": {"data_type": "freeze"},
-        }
+        contract = CONTRACTS.get(mode)
+        disposition = DISPOSITIONS[operation]
+        keys = load_json(Path(paths[0]).with_name(MANIFEST))["row_identity"] if disposition == "merge" else []
         with TemporaryDirectory(prefix="tec-dlt-") as temp:
             database = Path(temp) / "destination.duckdb"
+            filesystem = mode == "filesystem"
+            destination = (
+                dlt.destinations.filesystem(bucket_url=(Path(temp) / "bucket").as_uri())
+                if filesystem
+                else dlt.destinations.duckdb(str(database))
+            )
             pipeline = dlt.pipeline(
                 pipeline_name=f"tec_{uuid4().hex}",
                 pipelines_dir=str(Path(temp) / "pipelines"),
-                destination=dlt.destinations.duckdb(str(database)),
+                destination=destination,
                 dataset_name="corpus",
             )
 
@@ -68,15 +94,30 @@ class DltAdapter(Adapter):
             # independent of the unique pipeline name.
             @dlt.source(name="corpus")
             def source(table: pa.Table):
-                return dlt.resource(table, name="versions", write_disposition="append")
+                resource = dlt.resource(table, name="versions", write_disposition=disposition)
+                if keys:
+                    resource.apply_hints(primary_key=keys)
+                return resource
 
             try:
                 for path in paths:
                     data = source(pq.read_table(path))
-                    if mode == "default":
-                        pipeline.run(data)
+                    if filesystem:
+                        pipeline.run(data, loader_file_format="parquet")
+                    elif contract is not None:
+                        pipeline.run(data, schema_contract=contract)
                     else:
-                        pipeline.run(data, schema_contract=contracts[mode])
+                        pipeline.run(data)
+                schema_hints = {
+                    name: {key: value for key, value in column.items() if key != "name"}
+                    for name, column in pipeline.default_schema.get_table_columns("versions").items()
+                }
+                if filesystem:
+                    client = pipeline.destination_client()
+                    assert isinstance(client, FilesystemClient)
+                    files = sorted(client.list_table_files("versions"))
+                    table = pa.concat_tables([pq.read_table(file) for file in files], promote_options="permissive")
+                    return DltResult(table.schema, table.num_rows, schema_hints)
             except PipelineStepFailed as error:
                 # Record the engine's original exception verbatim. The wrappers
                 # add random load/job identifiers and pipeline state instructions.
@@ -98,13 +139,25 @@ class DltAdapter(Adapter):
                 counted = con.sql('SELECT count(*) FROM "corpus"."versions"').fetchone()
                 if counted is None:
                     raise AssertionError("count(*) returned no row")
-                return DltResult([(name, native, null) for name, native, null, *_ in described], counted[0])
+                return DltResult(
+                    [(name, native, null) for name, native, null, *_ in described], counted[0], schema_hints
+                )
 
     def describe(self, result: DltResult) -> Observation:
-        fields = [
-            # DuckDB exposes JSON's type id as varchar; JSON has no corpus type.
-            ResultField(name, None if native == "JSON" else corpus_type(duckdb.sqltype(native)), native, null == "YES")
-            for name, native, null in result.columns
-            if name not in {"_dlt_load_id", "_dlt_id"}
-        ]
-        return Observation(fields, result.row_count)
+        if isinstance(result.columns, pa.Schema):
+            fields = [
+                ResultField(field.name, arrow_type(field.type), str(field.type), field.nullable)
+                for field in result.columns
+                if field.name not in BOOKKEEPING_COLUMNS
+            ]
+        else:
+            fields = [
+                # DuckDB exposes JSON's type id as varchar; JSON has no corpus type.
+                ResultField(
+                    name, None if native == "JSON" else duckdb_type(duckdb.sqltype(native)), native, null == "YES"
+                )
+                for name, native, null in result.columns
+                if name not in BOOKKEEPING_COLUMNS
+            ]
+        hints = {field.name: result.schema_hints[field.name] for field in fields}
+        return Observation(fields, result.row_count, dlt_schema_hints=hints)
