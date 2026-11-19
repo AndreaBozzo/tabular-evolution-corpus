@@ -98,7 +98,7 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path, monke
     fresh = [{**r, "platform": first["platform"]} for r in observe(ROOT, adapter, identity)]
     if legacy:
         for record in fresh:
-            record.pop("dlt_schema_hints")
+            record.pop("engine_schema_hints")
             record["schema_version"] = first["schema_version"]
     differing = [record_key(old) for old, new in zip(records, fresh, strict=False) if old != new]
     assert len(fresh) == len(records)
@@ -124,7 +124,7 @@ def test_observation_tables_include_replace_and_merge(tmp_path: Path) -> None:
             **record,
             "operation": operation,
             "schema_version": "1.3",
-            "dlt_schema_hints": {field["name"]: {} for field in record["result_schema"]},
+            "engine_schema_hints": {field["name"]: {} for field in record["result_schema"]},
         }
         for operation in ("append_to_table", "replace_table", "merge_into_table")
         for record in append

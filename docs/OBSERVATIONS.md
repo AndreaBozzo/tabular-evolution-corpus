@@ -63,7 +63,7 @@ dlt's default contract. PyArrow reads the loaded Parquet files and
 concatenates them with permissive schema promotion. The recorded schema,
 nullability and row count come from that readback or from the DuckDB table.
 
-In format 1.3, `dlt_schema_hints` records dlt's stored attributes for each
+In format 1.3, `engine_schema_hints` records dlt's stored attributes for each
 column in `result_schema`, keyed by its destination name. These attributes
 include `data_type` and, when dlt stores them, `precision`, `scale`,
 `nullable`, or `primary_key`. The destination schema and dlt's schema

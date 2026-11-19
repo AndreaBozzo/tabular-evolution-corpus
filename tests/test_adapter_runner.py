@@ -149,7 +149,7 @@ def test_phase_two_operations_keep_modes_and_operation_specific_outcomes() -> No
         ("profile_each_version", "default", ["v1"]),
     ]
     assert {r["schema_version"] for r in records} == {"1.3"}
-    assert all(r["dlt_schema_hints"] is None for r in records)
+    assert all(r["engine_schema_hints"] is None for r in records)
     assert records[4]["exit_code"] == 1
     assert records[4]["findings"] == ["Contract tool says invalid: changed type"]
     assert records[4]["status"] == "success"

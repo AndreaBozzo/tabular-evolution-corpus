@@ -64,7 +64,7 @@ class Observation:
     exit_code: int | None = None
     findings: list[str] = field(default_factory=list)
     column_profiles: list[ColumnProfile] | None = None
-    dlt_schema_hints: dict[str, dict[str, Any]] | None = None
+    engine_schema_hints: dict[str, dict[str, Any]] | None = None
 
 
 class Adapter(ABC):

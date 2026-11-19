@@ -160,4 +160,4 @@ class DltAdapter(Adapter):
                 if name not in BOOKKEEPING_COLUMNS
             ]
         hints = {field.name: result.schema_hints[field.name] for field in fields}
-        return Observation(fields, result.row_count, dlt_schema_hints=hints)
+        return Observation(fields, result.row_count, engine_schema_hints=hints)

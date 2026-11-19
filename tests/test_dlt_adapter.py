@@ -102,8 +102,8 @@ def test_hints_come_from_dlt_schema() -> None:
     observation = adapter.describe(adapter.read("append_to_table", "default", paths))
     assert observation.fields is not None
     assert next(field.native_type for field in observation.fields if field.name == "price") == "DECIMAL(9,2)"
-    assert observation.dlt_schema_hints is not None
-    price = observation.dlt_schema_hints["price"]
+    assert observation.engine_schema_hints is not None
+    price = observation.engine_schema_hints["price"]
     assert price["data_type"] == "decimal"
     assert price["precision"] == 18
     assert price["scale"] == 2
@@ -114,9 +114,9 @@ def test_records_follow_the_result_schema() -> None:
     for record in additive_records():
         assert check_record(record, validator) == []
         if record["status"] == "success":
-            assert record["dlt_schema_hints"]["id"]["data_type"] == "bigint"
+            assert record["engine_schema_hints"]["id"]["data_type"] == "bigint"
         else:
-            assert record["dlt_schema_hints"] is None
+            assert record["engine_schema_hints"] is None
 
 
 def test_nested_arrow_fields_are_stored_as_json() -> None:
@@ -143,8 +143,8 @@ def test_bookkeeping_columns_are_omitted(monkeypatch: pytest.MonkeyPatch) -> Non
     assert observation.fields is not None
     assert {field.name for field in observation.fields} == {"id", "name", "loyalty_points"}
     assert observation.row_count == 12
-    assert observation.dlt_schema_hints is not None
-    assert set(observation.dlt_schema_hints) == {"id", "name", "loyalty_points"}
+    assert observation.engine_schema_hints is not None
+    assert set(observation.engine_schema_hints) == {"id", "name", "loyalty_points"}
 
 
 def test_telemetry_is_disabled() -> None:

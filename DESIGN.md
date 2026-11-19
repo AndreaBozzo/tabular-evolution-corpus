@@ -284,7 +284,7 @@ the manifest):
  "result_schema": [{"name": "event_time", "type": null,
                     "native_type": "TIMESTAMP WITH TIME ZONE", "nullable": null}],
  "row_count": 10, "exit_code": null, "findings": [], "column_profiles": null,
- "dlt_schema_hints": null, "error_class": null, "notes": []}
+ "engine_schema_hints": null, "error_class": null, "notes": []}
 ```
 
 - **Corpus identity.** `corpus_version` names a release; `corpus_revision`
@@ -320,7 +320,7 @@ the manifest):
   second using the named disposition. A successful result records the
   destination's schema and row count. dlt's `filesystem` append mode reads
   back the Parquet files. A successful dlt result records its stored column
-  attributes in `dlt_schema_hints`, keyed by the names in `result_schema`.
+  attributes in `engine_schema_hints`, keyed by the names in `result_schema`.
   Other results in this format carry null.
 - **Types.** `type` is the corpus type vocabulary where the engine's type has
   a clear equivalent, otherwise null; `native_type` is always the engine's own
