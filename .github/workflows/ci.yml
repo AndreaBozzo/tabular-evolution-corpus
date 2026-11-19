@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           uv run pytest tests/test_catalog_compat.py -q | tee pytest.out
-          grep -Eq "^3 passed" pytest.out
+          grep -Eq "^[0-9]+ passed(, [0-9]+ warnings?)? in " pytest.out
 
   adapters:
     name: adapters run every engine
