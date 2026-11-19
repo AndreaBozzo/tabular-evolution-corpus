@@ -37,7 +37,7 @@ tabular-evolution-corpus/
 │   ├── validate.py         every check of manifests against files
 │   ├── catalog.py          data/scenarios.parquet
 │   ├── release.py          reproducibility comparison, checksums
-│   └── cli.py              `tec list | inspect | validate`
+│   └── cli.py              `tec list | inspect | validate | export`
 ├── adapters/               engine adapters, runner, report (not in the package)
 ├── results/                observations per corpus version and adapter (not part of the corpus)
 ├── scripts/

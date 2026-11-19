@@ -1,4 +1,4 @@
-"""`tec`: list, inspect and validate scenarios in a corpus checkout."""
+"""`tec`: list, inspect, validate and export scenarios in a corpus checkout."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+from .export import export_fixtures
 from .inspect import inspect_file
 from .validate import LoadedScenario, load_json, observe_transition, scenario_dirs, validate_corpus
 from .values import encode
@@ -63,12 +64,22 @@ def main(argv: list[str] | None = None) -> int:
     inspect.add_argument("scenario_id")
     validate = sub.add_parser("validate", help="check manifests against their files")
     validate.add_argument("scenario_ids", nargs="*")
+    export = sub.add_parser("export", help="copy fixtures and their provenance to a directory")
+    export.add_argument("dest", type=Path)
+    export.add_argument("scenario_ids", nargs="*")
     args = parser.parse_args(argv)
 
     if args.command == "list":
         return _list(args.root)
     if args.command == "inspect":
         return _inspect(args.root, args.scenario_id)
+    if args.command == "export":
+        try:
+            export_fixtures(args.root, args.dest, args.scenario_ids)
+        except (OSError, ValueError) as error:
+            print(f"export: {error}", file=sys.stderr)
+            return 2
+        return 0
     return _validate(args.root, args.scenario_ids)
 
 

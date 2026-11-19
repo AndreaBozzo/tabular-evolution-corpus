@@ -47,6 +47,25 @@ ORDER BY scenario_id;
 (The pandas, DuckDB and Polars loading paths are exercised by
 `tests/test_catalog_compat.py` after `uv sync --group compat`.)
 
+## Vendoring fixtures
+
+From a corpus Git checkout, export the scenarios your test suite needs:
+
+```bash
+uv run tec export ../my-project/tests/corpus string_to_binary rename_column_with_field_id
+cd ../my-project/tests/corpus
+sha256sum -c SHA256SUMS
+```
+
+Omit the scenario IDs to copy all scenarios. The export includes the selected
+`fixtures/` directories, their checksum entries, the license, and a
+`README.txt` with the corpus version and Git revision. A revision ending in
+`-dirty` identifies local changes to the exported corpus sources.
+The export's `.gitattributes` disables Git line-ending conversion for its
+files. You can rerun the same export into an existing directory whose entries
+match. An unknown scenario ID or a conflicting destination entry stops the
+export.
+
 ## Consuming the fixtures
 
 A downstream test suite needs only the files and the manifests. It does not
