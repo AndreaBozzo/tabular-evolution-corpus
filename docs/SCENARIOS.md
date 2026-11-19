@@ -2,7 +2,7 @@
 
 ## What this is
 
-A deliberately small corpus of **44 scenarios**. Each scenario is one logical
+A deliberately small corpus of **45 scenarios**. Each scenario is one logical
 dataset at two or more points in time:
 
 - **versions**: tiny Parquet files (0 to 8 rows) written by one pinned writer;
@@ -124,6 +124,7 @@ v1 value is exactly `float(v0)`.
 | `timestamp_ns_to_us` | temporal | Timestamp unit changes from nanoseconds to microseconds | change_type | - | 6/6 |
 | `timestamp_ms_to_us` | temporal | Timestamp unit changes from milliseconds to microseconds | change_type | - | 6/6 |
 | `dates_before_gregorian_cutover` | temporal | Rows with dates before the Gregorian calendar cutover are appended | (none) | - | 3/7 |
+| `date_to_timestamp` | temporal | Date column becomes a timestamp at midnight | change_type | date_at_midnight | 6/6 |
 | `empty_then_populated` | edge | Empty typed file followed by a populated file | (none) | - | 0/5 |
 | `rows_appended_without_key` | edge | Rows appended to a dataset without a key | (none) | - | 4/6 |
 | `rows_deleted` | edge | Rows deleted from a keyed dataset | (none) | - | 6/4 |

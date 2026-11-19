@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.1",
+  "scenario_id": "date_to_timestamp",
+  "title": "Date column becomes a timestamp at midnight",
+  "category": "temporal",
+  "description": "A date32 column becomes a naive timestamp[us] column of the same name. Each value becomes 00:00:00 of the same day. Values include the day before the epoch, the epoch, a leap day, 0001-01-01 and 9999-12-31, and a null.",
+  "notes": [
+    "Iceberg v3 lists date to timestamp as a type promotion, and Delta type widening allows date to timestampNTZ.",
+    "At the Parquet level the logical type changes from DATE (INT32 days) to a Timestamp in MICROS (INT64) with isAdjustedToUTC false.",
+    "timestamp[ns] holds 1677-09-21 to 2262-04-11. Promoting 0001-01-01 or 9999-12-31 to nanoseconds has no value for those rows."
+  ],
+  "tags": [
+    "change-type",
+    "date",
+    "timestamp",
+    "widening",
+    "range-extremes"
+  ],
+  "arrow_features": [],
+  "row_identity": [
+    "id"
+  ],
+  "versions": [
+    {
+      "id": "v0",
+      "file": "v0.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:36542d1ae46fa9aaced232d54926b944bb8a78dbb6d24e856c2e48dc5a6497cf",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_date",
+          "type": "date32[day]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    },
+    {
+      "id": "v1",
+      "file": "v1.parquet",
+      "row_count": 6,
+      "fingerprint": "sha256:527931bec7c78bd2ef4e7212612c2ae65152a09133bab3412d554b4d6cb9cd0b",
+      "schema": [
+        {
+          "name": "id",
+          "type": "int64",
+          "nullable": false
+        },
+        {
+          "name": "event_date",
+          "type": "timestamp[us]",
+          "nullable": true
+        }
+      ],
+      "writer": {
+        "use_dictionary": true
+      },
+      "dictionaries": []
+    }
+  ],
+  "transitions": [
+    {
+      "from": "v0",
+      "to": "v1",
+      "mutations": [
+        {
+          "kind": "change_type",
+          "path": "event_date",
+          "old_type": "date32[day]",
+          "new_type": "timestamp[us]"
+        }
+      ],
+      "invariants": {
+        "row_count_preserved": true,
+        "row_identity_preserved": true,
+        "rows_retained": true,
+        "paths_retained": true,
+        "common_values_preserved": false,
+        "value_changes": [
+          {
+            "path": "event_date",
+            "relation": "date_at_midnight"
+          }
+        ],
+        "parquet_schema_preserved": false
+      }
+    }
+  ]
+}

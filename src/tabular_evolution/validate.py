@@ -12,6 +12,7 @@ import math
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from functools import cached_property
 from pathlib import Path
 from typing import Any
@@ -214,6 +215,17 @@ def _check_relation(relation: str, pairs: list[tuple[Any, Any]]) -> bool:
                 and a.tz is None
                 and b.tz == "UTC"
                 and a.epoch_ns == b.epoch_ns
+            )
+            for a, b in pairs
+        ),
+        "date_at_midnight": lambda: all(
+            both_null(a, b)
+            or (
+                isinstance(a, date)
+                and not isinstance(a, datetime)
+                and isinstance(b, Instant)
+                and b.tz is None
+                and b.epoch_ns == (a - date(1970, 1, 1)).days * 86_400 * 10**9
             )
             for a, b in pairs
         ),

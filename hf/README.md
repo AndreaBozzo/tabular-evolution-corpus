@@ -37,7 +37,7 @@ decide.
 ## What the viewer shows
 
 The viewer shows the **catalog**, `data/scenarios.parquet`, with one row per
-scenario (44 rows). The catalog is an index. The versioned fixture files it
+scenario (45 rows). The catalog is an index. The versioned fixture files it
 points to live in the same repository under `fixtures/<scenario_id>/`
 (`v0.parquet`, `v1.parquet`, ..., `scenario.json`).
 
@@ -124,7 +124,7 @@ Intended as test input for ingestion frameworks, dataframe libraries, query
 engines, lakehouse tooling, schema registries, contract validators and
 profilers. It is not training data, not a performance benchmark, and not a
 conformance suite for Arrow or Parquet (see apache/parquet-testing and the
-Arrow integration tests for those). Corpus 0.3.0 covers Parquet only and 44
+Arrow integration tests for those). Corpus 0.4.0 covers Parquet only and 45
 scenarios. Nested evolution covers structs, lists and maps; datasets are
 keyed or identified by row position.
 

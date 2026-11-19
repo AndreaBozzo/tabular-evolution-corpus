@@ -206,6 +206,7 @@ every aligned row (`a` = old value, `b` = new value):
 | `nearest_float64` | nulls stay null; otherwise `a` is an integer and `b` is exactly `float(a)` |
 | `utf8_encoded` | nulls stay null; otherwise `b` is exactly the UTF-8 encoding of `a` |
 | `interpreted_as_utc` | nulls stay null; otherwise `a` is naive, `b` is zoned `UTC`, same epoch value |
+| `date_at_midnight` | nulls stay null; otherwise `a` is a date, `b` is a naive timestamp at 00:00:00 of that day |
 
 The test suite swaps each declared relation for every other one and requires
 the validator to reject the swap, so no relation in the corpus holds vacuously.

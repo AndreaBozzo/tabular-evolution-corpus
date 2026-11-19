@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import shutil
+from datetime import date
 from pathlib import Path
 
 import pyarrow as pa
@@ -214,6 +215,8 @@ def test_missing_file_is_detected(tmp_path: Path) -> None:
 
 # ------------------------------------------------------------ relation rules
 
+DAY_NS = 86_400 * 10**9
+
 
 @pytest.mark.parametrize(
     ("relation", "holds", "violated"),
@@ -227,6 +230,12 @@ def test_missing_file_is_detected(tmp_path: Path) -> None:
         ("nearest_float64", [(2**53 + 1, float(2**53))], [(2**53 + 1, float(2**53 + 2))]),
         ("utf8_encoded", [("café", b"caf\xc3\xa9")], [("café", b"caf\xc3\xa9")]),
         ("interpreted_as_utc", [(Instant(5, None), Instant(5, "UTC"))], [(Instant(5, "UTC"), Instant(5, "UTC"))]),
+        (
+            "date_at_midnight",
+            [(date(1970, 1, 2), Instant(DAY_NS, None)), (None, None)],
+            [(date(1970, 1, 2), Instant(DAY_NS + 1, None))],
+        ),
+        ("date_at_midnight", [(date(1969, 12, 31), Instant(-DAY_NS, None))], [(date(1970, 1, 1), Instant(0, "UTC"))]),
     ],
 )
 def test_relation_rules(relation: str, holds: list, violated: list) -> None:

@@ -36,6 +36,7 @@ RELATIONS = (
     "nearest_float64",
     "utf8_encoded",
     "interpreted_as_utc",
+    "date_at_midnight",
 )
 
 

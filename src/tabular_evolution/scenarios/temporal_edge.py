@@ -229,6 +229,55 @@ def dates_before_gregorian_cutover() -> Scenario:
     )
 
 
+# Days around the epoch, a leap day, and the first and last days Python's
+# date can represent. Midnight of each fits timestamp[us].
+PROMOTED_DAYS = [date(1969, 12, 31), date(1970, 1, 1), date(2024, 2, 29), date(1, 1, 1), date(9999, 12, 31), None]
+
+
+def date_to_timestamp() -> Scenario:
+    midnights = [None if d is None else (d - date(1970, 1, 1)).days * 86400 * US_PER_S for d in PROMOTED_DAYS]
+    return Scenario(
+        scenario_id="date_to_timestamp",
+        title="Date column becomes a timestamp at midnight",
+        category="temporal",
+        description=(
+            "A date32 column becomes a naive timestamp[us] column of the same name. Each value becomes "
+            "00:00:00 of the same day. Values include the day before the epoch, the epoch, a leap day, "
+            "0001-01-01 and 9999-12-31, and a null."
+        ),
+        notes=[
+            "Iceberg v3 lists date to timestamp as a type promotion, and Delta type widening allows date to "
+            "timestampNTZ.",
+            "At the Parquet level the logical type changes from DATE (INT32 days) to a Timestamp in MICROS "
+            "(INT64) with isAdjustedToUTC false.",
+            "timestamp[ns] holds 1677-09-21 to 2262-04-11. Promoting 0001-01-01 or 9999-12-31 to nanoseconds "
+            "has no value for those rows.",
+        ],
+        tags=["change-type", "date", "timestamp", "widening", "range-extremes"],
+        row_identity=["id"],
+        versions=[
+            Version(
+                "v0",
+                lambda: table([ID, field("event_date", pa.date32())], [ids(6), PROMOTED_DAYS]),
+                [col("id", "int64", False), col("event_date", "date32[day]")],
+            ),
+            Version(
+                "v1",
+                lambda: table([ID, field("event_date", pa.timestamp("us"))], [ids(6), midnights]),
+                [col("id", "int64", False), col("event_date", "timestamp[us]")],
+            ),
+        ],
+        transitions=[
+            Transition(
+                "v0",
+                "v1",
+                [change_type("event_date", "date32[day]", "timestamp[us]")],
+                same_rows(parquet_schema_preserved=False, value_changes=(("event_date", "date_at_midnight"),)),
+            )
+        ],
+    )
+
+
 def empty_then_populated() -> Scenario:
     fields = [
         ID,
@@ -349,6 +398,7 @@ SCENARIOS = [
     timestamp_ns_to_us,
     timestamp_ms_to_us,
     dates_before_gregorian_cutover,
+    date_to_timestamp,
     empty_then_populated,
     rows_deleted,
 ]
