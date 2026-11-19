@@ -34,8 +34,16 @@ from .base import OPERATIONS, SINGLE_VERSION_OPERATIONS, Adapter
 RESULT_SCHEMA = Path("schema") / "result.schema.json"
 RESULTS_DIR = Path("results")
 RECORD_VERSION = "1.2"
+RECORD_KEY_FIELDS = ("adapter", "scenario_id", "from", "to", "operation", "mode", "inputs")
 DIRTY_SUFFIX = "-dirty"
 _MACHINES = {"amd64": "x86_64", "aarch64": "arm64"}
+
+RecordKey = tuple[str | tuple[str, ...], ...]
+
+
+def record_key(record: dict[str, Any]) -> RecordKey:
+    """Identify one engine call within a run, including the input order."""
+    return tuple(tuple(record[field]) if field == "inputs" else record[field] for field in RECORD_KEY_FIELDS)
 
 
 def current_platform() -> str:

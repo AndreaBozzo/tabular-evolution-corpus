@@ -10,6 +10,21 @@ platform. Linux and Windows on x86_64 give identical records. macOS on arm64
 does not: there, PyArrow's `default` read of `int64_to_float64` succeeds,
 where on x86_64 it raises `ArrowInvalid` for the value 2^63.
 
+Within a run, the record key is
+`(adapter, scenario_id, from, to, operation, mode, inputs)`. The `from`
+and `to` fields name the transition. `inputs` keeps the order of the
+files passed to the engine.
+
+```bash
+uv run python -m adapters.compare /tmp/dlt-1.26.0.jsonl /tmp/dlt-1.32.0.jsonl
+```
+
+The comparison shows run metadata in the header and lists changed observation
+fields and keys found in only one file. Run metadata includes the result
+format and corpus versions, the corpus revision, the engine version and the
+platform. Local records marked `-dirty` can be compared. The command exits
+with 0 for identical observations, 1 for differences and 2 for input errors.
+
 | adapter | `read_each_version` | `read_versions_together` modes |
 | --- | --- | --- |
 | PyArrow | `pq.read_table` | `default`: `ds.dataset([from, to])`, schema from the first file; `unified_permissive`: schema from `pa.unify_schemas(..., promote_options="permissive")` |

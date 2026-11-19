@@ -22,6 +22,7 @@ from adapters.runner import (
     observe,
     read_recorded_results,
     read_results,
+    record_key,
     result_validator,
     write_results,
 )
@@ -82,11 +83,7 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path) -> No
         pytest.skip(f"recorded on {first['platform']}, running on {here}")
     identity = CorpusIdentity(first["corpus_version"], first["corpus_revision"])
     fresh = [{**r, "platform": first["platform"]} for r in observe(ROOT, adapter, identity)]
-    differing = [
-        (old["scenario_id"], old["from"], old["to"], old["operation"], old["mode"], old["inputs"])
-        for old, new in zip(records, fresh, strict=False)
-        if old != new
-    ]
+    differing = [record_key(old) for old, new in zip(records, fresh, strict=False) if old != new]
     assert len(fresh) == len(records)
     assert differing == []
 

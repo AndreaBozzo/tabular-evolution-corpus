@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/AndreaBozzo/tabular-evolution-corpus/schema/result.schema.json",
   "title": "Tabular evolution adapter observation",
-  "description": "What one engine did with one transition of one scenario, under one operation and mode. One record per line of a JSON Lines results file. Records observations only: no field says whether the outcome is correct, expected or acceptable, and results never modify the corpus.",
+  "description": "What one engine did with one transition of one scenario, under one operation and mode. One record per line of a JSON Lines results file. The key within a run is (adapter, scenario_id, from, to, operation, mode, inputs). Input order is part of the key. Records observations only: no field says whether the outcome is correct, expected or acceptable, and results never modify the corpus.",
   "type": "object",
   "additionalProperties": false,
   "required": [
