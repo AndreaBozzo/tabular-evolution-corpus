@@ -87,7 +87,7 @@ root = snapshot_download("AndreaBozzo/tabular-evolution-corpus", repo_type="data
 ```
 
 Every corpus release is a tag, both here and on GitHub. Pass
-`revision="v0.3.0"` to either call to get exactly that release. A released tag
+`revision="v0.4.0"` to either call to get exactly that release. A released tag
 is never moved, and a changed corpus gets a new release.
 
 ```sql
