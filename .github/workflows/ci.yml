@@ -79,3 +79,17 @@ jobs:
         run: |
           uv run pytest tests/test_adapters.py tests/test_deltalake_adapter.py tests/test_dlt_adapter.py tests/test_dataprof_adapter.py tests/test_report.py -q | tee pytest.out
           grep -Eq "^[0-9]+ passed(, [0-9]+ warnings?)? in " pytest.out
+
+  dlt-1-26:
+    name: dlt adapter on 1.26.0
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0  # no moving major tag after v7
+      - name: dlt adapter tests pass without skips
+        shell: bash
+        run: |
+          uv run --no-project --with . --with 'dlt[duckdb]==1.26.0' --with 'duckdb==1.5.5' --with pytest python -m pytest tests/test_dlt_adapter.py -q | tee pytest.out
+          grep -Eq "^[0-9]+ passed(, [0-9]+ warnings?)? in " pytest.out

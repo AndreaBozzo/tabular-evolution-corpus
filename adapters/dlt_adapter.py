@@ -19,13 +19,17 @@ import dlt
 import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
-from dlt.common.destination.exceptions import SchemaUpdateError
 from dlt.common.schema.typing import TSchemaContract
 from dlt.load.exceptions import LoadClientJobException
 from dlt.pipeline.exceptions import PipelineStepFailed
 
 from .base import Adapter, Observation, ResultField
 from .duckdb_adapter import corpus_type
+
+try:
+    from dlt.common.destination.exceptions import SchemaUpdateError
+except ImportError:
+    SchemaUpdateError = None  # dlt before 1.30 raises the schema error directly.
 
 
 @dataclass(frozen=True)
@@ -79,7 +83,7 @@ class DltAdapter(Adapter):
                 cause = error.exception
                 if isinstance(cause, LoadClientJobException):
                     cause = cause.client_exception
-                elif isinstance(cause, SchemaUpdateError):
+                elif SchemaUpdateError is not None and isinstance(cause, SchemaUpdateError):
                     cause = cause.cause
                 # dlt's Arrow writer can remain referenced by failed frames.
                 # Release those locals and writer cycles before Windows removes
