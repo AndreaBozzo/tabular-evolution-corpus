@@ -14,7 +14,17 @@ from test_adapters import ENGINE_MODULE
 
 from adapters import REGISTRY, load_adapter
 from adapters.report import _order_dependent, _relative, latest_results, main
-from adapters.runner import CorpusIdentity, check_record, current_platform, observe, read_results, result_validator
+from adapters.runner import (
+    CorpusError,
+    CorpusIdentity,
+    check_record,
+    current_platform,
+    observe,
+    read_recorded_results,
+    read_results,
+    result_validator,
+    write_results,
+)
 from tabular_evolution import __version__
 
 RESULTS = latest_results(ROOT)
@@ -28,7 +38,7 @@ def test_there_are_results_for_every_adapter() -> None:
 
 @pytest.mark.parametrize("path", FILES, ids=[p.stem for p in FILES])
 def test_committed_records_are_valid_and_from_one_run(path: Path) -> None:
-    records = read_results(path)
+    records = read_recorded_results(path)
     validator = result_validator(ROOT)
     assert records and all(check_record(r, validator) == [] for r in records)
     run = {
@@ -37,6 +47,19 @@ def test_committed_records_are_valid_and_from_one_run(path: Path) -> None:
     assert len(run) == 1
     assert records[0]["corpus_version"] == path.parent.name
     assert records[0]["adapter"] == path.stem
+
+
+@pytest.mark.parametrize("path", sorted((ROOT / "results").glob("*/*.jsonl")))
+def test_recorded_files_only_contain_clean_records(path: Path) -> None:
+    assert read_recorded_results(path)
+
+
+def test_recorded_reader_rejects_dirty_file(tmp_path: Path) -> None:
+    records = read_results(FILES[0])
+    records[-1]["corpus_revision"] += "-dirty"
+    path = write_results(tmp_path / "dirty.jsonl", records)
+    with pytest.raises(CorpusError, match="records from a dirty checkout"):
+        read_recorded_results(path)
 
 
 @pytest.mark.parametrize("path", FILES, ids=[p.stem for p in FILES])
@@ -82,6 +105,21 @@ def test_observation_check_detects_a_stale_table(tmp_path: Path) -> None:
     assert main(["--root", str(tmp_path), "--check"]) == 1
     assert main(["--root", str(tmp_path)]) == 0
     assert (tmp_path / "docs" / "OBSERVATIONS.md").read_bytes() == original
+
+
+def test_report_refuses_dirty_records(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    for name in ("fixtures", "results", "docs"):
+        shutil.copytree(ROOT / name, tmp_path / name)
+    (source, *_) = FILES
+    path = tmp_path / source.relative_to(ROOT)
+    records = read_results(path)
+    records[-1]["corpus_revision"] += "-dirty"
+    write_results(path, records)
+    doc = tmp_path / "docs/OBSERVATIONS.md"
+    original = doc.read_bytes()
+    assert main(["--root", str(tmp_path)]) == 2
+    assert "records from a dirty checkout" in capsys.readouterr().err
+    assert doc.read_bytes() == original
 
 
 def record(schema: list[tuple[str, str]] | None, inputs: list[str], rows: int = 2) -> dict[str, Any]:

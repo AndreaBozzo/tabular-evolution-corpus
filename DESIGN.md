@@ -267,8 +267,9 @@ the manifest):
 ```
 
 - **Corpus identity.** `corpus_version` names a release; `corpus_revision`
-  is the commit the fixtures were read from, which proves which bytes
-  produced the result.
+  gives the checkout commit. The fixtures match the release tag. A
+  `-dirty` suffix identifies an exploratory run from a checkout with local
+  changes outside the fixtures.
 - **Platform.** `platform` is the operating system and CPU architecture of
   the run (format 1.1). The same engine version can answer differently on
   another architecture: PyArrow 25.0.1 raises on one `int64_to_float64` read

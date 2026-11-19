@@ -26,6 +26,7 @@ uv run tec inspect <scenario_id>                # everything the reference inspe
 uv run tec validate [<scenario_id> ...]
 
 uv run python -m adapters.runner [adapter ...]  # needs a clean checkout whose fixtures/ match a tagged release
+uv run python -m adapters.runner dlt --output /tmp/dlt.jsonl --allow-dirty --scenarios add_required_column
 uv run python -m adapters.report [--check]      # regenerate the tables in docs/OBSERVATIONS.md
 
 uv run ruff format .                            # formatter, line length 120
@@ -47,6 +48,8 @@ CI (`.github/workflows/ci.yml`) runs ruff and ty, pytest, regenerates fixtures a
 - Mutation kinds and value relations are closed sets. Adding one is a manifest-format change: update `schema/scenario.schema.json`, `models.py`, `diff.py`/`validate.py`, `DESIGN.md`, and add tampering tests proving the new check fails when violated.
 
 **Adapters are outside the package** (`adapters/`, importable because pytest sets `pythonpath = ["."]`). Each adapter declares its operations and closed list of modes and splits a call into `read` (an exception is the engine's answer and becomes an `error` record) and `describe` (an exception is an adapter bug and stops the run). The runner validates every record against `schema/result.schema.json` and writes `results/<corpus version>/<adapter>.jsonl`. `docs/OBSERVATIONS.md` has a generated section between `observations:begin/end` markers; regenerate it with `adapters.report`, never edit it by hand. Results are observations about engines and never modify the corpus.
+
+Use `--output PATH` with one adapter to keep runs side by side. `--scenarios ID ...` limits the run and rejects unknown IDs. `--allow-dirty` allows local changes outside `fixtures/`, which must match the release tag for every run. Dirty or filtered runs need an explicit output outside `results/`. A dirty checkout adds `-dirty` to each record's `corpus_revision`. Recorded results and `adapters.report` reject that suffix.
 
 ## Rules that tests enforce
 

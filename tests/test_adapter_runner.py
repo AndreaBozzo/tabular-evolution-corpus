@@ -4,6 +4,7 @@ engine errors recorded, adapter bugs not, records validated before writing."""
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ from typing import Any
 import pytest
 from conftest import ROOT
 
+from adapters import runner
 from adapters.base import Adapter, ColumnProfile, Observation, ResultField
 from adapters.runner import (
     CorpusError,
@@ -24,6 +26,7 @@ from adapters.runner import (
     result_validator,
     write_results,
 )
+from tabular_evolution import __version__
 
 IDENTITY = CorpusIdentity("0.1.0", "6d928a8c2b0b91adc8d8896c8cc6b7cc7488f800")
 SCENARIOS = ["add_all_null_column", "reorder_columns"]  # three transitions
@@ -206,13 +209,15 @@ def git(repo: Path, *args: str) -> str:
 
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
-    git(tmp_path, "init", "-q")
-    (tmp_path / "fixtures").mkdir()
-    (tmp_path / "fixtures" / "a.txt").write_bytes(b"a\n")
-    git(tmp_path, "add", ".")
-    git(tmp_path, "commit", "-q", "-m", "corpus")
-    git(tmp_path, "tag", "v9.9.9")
-    return tmp_path
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q")
+    (repo / "fixtures").mkdir()
+    (repo / "fixtures" / "a.txt").write_bytes(b"a\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "corpus")
+    git(repo, "tag", "v9.9.9")
+    return repo
 
 
 def test_identity_of_a_tagged_clean_checkout(repo: Path) -> None:
@@ -244,8 +249,99 @@ def test_refuses_fixtures_that_differ_from_the_tag(repo: Path) -> None:
     git(repo, "commit", "-q", "-am", "change a fixture")
     with pytest.raises(CorpusError, match="differs from v9.9.9"):
         corpus_identity(repo, "9.9.9")
+    with pytest.raises(CorpusError, match="differs from v9.9.9"):
+        corpus_identity(repo, "9.9.9", allow_dirty=True)
+
+
+@pytest.mark.parametrize("change", ["unstaged", "staged", "untracked", "hidden", "ignored"])
+def test_dirty_mode_still_refuses_modified_fixtures(repo: Path, change: str) -> None:
+    path = repo / "fixtures/a.txt"
+    if change == "hidden":
+        git(repo, "update-index", "--assume-unchanged", "fixtures/a.txt")
+    if change == "ignored":
+        (repo / ".gitignore").write_bytes(b"fixtures/extra.parquet\n")
+    if change in {"untracked", "ignored"}:
+        path = repo / "fixtures/extra.parquet"
+    path.write_bytes(b"changed\n")
+    if change == "staged":
+        git(repo, "add", "fixtures/a.txt")
+    with pytest.raises(CorpusError, match="working tree fixtures/ differs"):
+        corpus_identity(repo, "9.9.9", allow_dirty=True)
 
 
 def test_main_refuses_outside_a_checkout(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--root", str(tmp_path)]) == 2
     assert "refusing to run" in capsys.readouterr().err
+
+
+@pytest.fixture
+def runnable_repo(repo: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    (repo / "schema").mkdir()
+    shutil.copyfile(ROOT / "schema/result.schema.json", repo / "schema/result.schema.json")
+    for scenario in SCENARIOS:
+        shutil.copytree(ROOT / "fixtures" / scenario, repo / "fixtures" / scenario)
+    git(repo, "add", ".")
+    git(repo, "commit", "-qm", "add scenarios and result schema")
+    git(repo, "tag", f"v{__version__}")
+    monkeypatch.setattr(runner, "load_adapter", lambda _: FakeAdapter())
+    return repo
+
+
+def test_output_keeps_runs_side_by_side(runnable_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    output_dir = tmp_path / "local-results"
+    monkeypatch.chdir(tmp_path)
+    old = output_dir / "old.jsonl"
+    new = output_dir / "new.jsonl"
+    assert main(["fake", "--root", str(runnable_repo), "--output", "local-results/old.jsonl"]) == 0
+    old_bytes = old.read_bytes()
+    monkeypatch.setattr(FakeAdapter, "version", "0.0.2")
+    assert main(["fake", "--root", str(runnable_repo), "--output", str(new)]) == 0
+    assert old.read_bytes() == old_bytes
+    assert {r["adapter_version"] for r in read_results(old)} == {"0.0.1"}
+    assert {r["adapter_version"] for r in read_results(new)} == {"0.0.2"}
+    assert not (runnable_repo / "results").exists()
+
+
+def test_dirty_run_marks_each_record(runnable_repo: Path) -> None:
+    (runnable_repo / "local.txt").write_bytes(b"local\n")
+    output = runnable_repo / "local.jsonl"
+    assert main(["fake", "--root", str(runnable_repo), "--allow-dirty", "--output", str(output)]) == 0
+    head = git(runnable_repo, "rev-parse", "HEAD")
+    assert {r["corpus_revision"] for r in read_results(output)} == {f"{head}-dirty"}
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_dirty_run_cannot_write_into_results(
+    runnable_repo: Path, capsys: pytest.CaptureFixture[str], explicit: bool
+) -> None:
+    (runnable_repo / "local.txt").write_bytes(b"local\n")
+    args = ["fake", "--root", str(runnable_repo), "--allow-dirty"]
+    if explicit:
+        args += ["--output", str(runnable_repo / "results/local.jsonl")]
+    with pytest.raises(SystemExit, match="2"):
+        main(args)
+    assert "dirty runs require --output outside results/" in capsys.readouterr().err
+    assert not (runnable_repo / "results").exists()
+
+
+def test_scenarios_limits_the_run(runnable_repo: Path) -> None:
+    output = runnable_repo / "local.jsonl"
+    assert main(["fake", "--root", str(runnable_repo), "--output", str(output), "--scenarios", "reorder_columns"]) == 0
+    records = read_results(output)
+    assert len(records) == 6
+    assert {r["scenario_id"] for r in records} == {"reorder_columns"}
+
+
+def test_filtered_run_cannot_write_into_results(runnable_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        main(["fake", "--root", str(runnable_repo), "--scenarios", "reorder_columns"])
+    assert "filtered runs require --output outside results/" in capsys.readouterr().err
+    assert not (runnable_repo / "results").exists()
+
+
+def test_unknown_scenario_is_an_error(runnable_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    output = runnable_repo / "local.jsonl"
+    with pytest.raises(SystemExit, match="2"):
+        main(["fake", "--root", str(runnable_repo), "--output", str(output), "--scenarios", "reorder_columns", "typo"])
+    assert "unknown scenarios: typo" in capsys.readouterr().err
+    assert not output.exists()

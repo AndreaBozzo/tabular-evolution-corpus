@@ -38,9 +38,9 @@
       "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
     },
     "corpus_revision": {
-      "description": "The exact commit the fixtures were read from: the git commit of the checkout, or the Hugging Face commit when read from the Hub.",
+      "description": "The checkout or Hugging Face commit the fixtures were read from. A -dirty suffix marks a local checkout with changes outside the tagged fixtures.",
       "type": "string",
-      "pattern": "^[0-9a-f]{40}$"
+      "pattern": "^[0-9a-f]{40}(-dirty)?$"
     },
     "scenario_id": { "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$", "maxLength": 64 },
     "from": { "$ref": "#/$defs/version_id" },

@@ -117,6 +117,26 @@ Files from other writers (parquet-java, Rust `parquet`, DuckDB, Spark) are
 a later item: the same scenarios, rewritten, would test whether a system's
 behaviour depends on the writer rather than on the change.
 
+## Running adapters locally
+
+```bash
+uv sync --group adapters
+uv run python -m adapters.runner dlt --output /tmp/dlt-1.32.0.jsonl
+uv run --no-project --with . --with 'dlt[duckdb]==1.26.0' --with 'duckdb==1.5.5' \
+  python -m adapters.runner dlt --output /tmp/dlt-1.26.0.jsonl
+```
+
+The default output is `results/<corpus version>/<adapter>.jsonl`.
+Use `--output PATH` with one adapter to keep separate runs. Relative output
+paths are resolved from the current directory. Use `--scenarios ID ...` to
+select scenarios. An unknown ID stops the run before any engine calls.
+
+The checkout must be clean by default. `--allow-dirty` permits local changes
+outside `fixtures/`. The fixtures must match the corpus release tag in
+every run. A dirty checkout adds `-dirty` to each record's `corpus_revision`.
+Dirty and filtered runs require an explicit output outside `results/`.
+Recorded results and `adapters.report` reject records marked `-dirty`.
+
 ## Versioning
 
 Three things are versioned, independently of each other:

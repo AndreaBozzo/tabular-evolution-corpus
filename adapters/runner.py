@@ -4,9 +4,9 @@ each engine did, one JSON Lines file per adapter and run.
     uv run python -m adapters.runner                 # every registered adapter
     uv run python -m adapters.runner duckdb polars   # some of them
 
-The run is pinned to exact corpus bytes: the checkout is clean, the corpus
-version is tagged, and `fixtures/` is identical to the tagged tree. Records
-are validated against `schema/result.schema.json` before anything is written.
+The corpus version is tagged and `fixtures/` matches the tagged tree for
+every run. A run from a dirty checkout is marked and written separately.
+Records are validated against `schema/result.schema.json` before writing.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ from .base import OPERATIONS, SINGLE_VERSION_OPERATIONS, Adapter
 RESULT_SCHEMA = Path("schema") / "result.schema.json"
 RESULTS_DIR = Path("results")
 RECORD_VERSION = "1.2"
+DIRTY_SUFFIX = "-dirty"
 _MACHINES = {"amd64": "x86_64", "aarch64": "arm64"}
 
 
@@ -53,17 +54,22 @@ class CorpusIdentity:
     version: str
     revision: str
 
+    @property
+    def dirty(self) -> bool:
+        return self.revision.endswith(DIRTY_SUFFIX)
 
-def _git(root: Path, *args: str) -> str:
-    done = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+
+def _git(root: Path, *args: str, input_: str | None = None) -> str:
+    done = subprocess.run(["git", *args], cwd=root, input=input_, capture_output=True, text=True)
     if done.returncode != 0:
         raise CorpusError(f"git {' '.join(args)}: {done.stderr.strip()}")
     return done.stdout.strip()
 
 
-def corpus_identity(root: Path, version: str = __version__) -> CorpusIdentity:
-    """The corpus version and the exact commit the fixtures are read from."""
-    if _git(root, "status", "--porcelain"):
+def corpus_identity(root: Path, version: str = __version__, *, allow_dirty: bool = False) -> CorpusIdentity:
+    """The corpus release and checkout revision, marked if the checkout is dirty."""
+    dirty = bool(_git(root, "status", "--porcelain", "--untracked-files=normal"))
+    if dirty and not allow_dirty:
         raise CorpusError("the checkout has uncommitted or untracked changes; results must name exact bytes")
     tag = f"v{version}"
     try:
@@ -72,7 +78,17 @@ def corpus_identity(root: Path, version: str = __version__) -> CorpusIdentity:
         raise CorpusError(f"corpus version {version} is not tagged ({tag}); tag the release first") from None
     if _git(root, "rev-parse", f"{tag}^{{commit}}:fixtures") != _git(root, "rev-parse", "HEAD:fixtures"):
         raise CorpusError(f"fixtures/ differs from {tag}; a changed corpus is a new release")
-    return CorpusIdentity(version, _git(root, "rev-parse", "HEAD"))
+    if _git(root, "status", "--porcelain", "--untracked-files=all", "--ignored", "--", "fixtures"):
+        raise CorpusError(f"working tree fixtures/ differs from {tag}")
+    # Git status can hide byte differences through checkout filters or index flags.
+    entries = _git(root, "ls-tree", "-rz", "HEAD", "--", "fixtures").rstrip("\0").split("\0")
+    blobs_and_paths = [entry.split("\t", 1) for entry in entries]
+    paths = "".join(f"{path}\n" for _, path in blobs_and_paths)
+    hashes = _git(root, "hash-object", "--no-filters", "--stdin-paths", input_=paths).splitlines()
+    if hashes != [blob.split()[2] for blob, _ in blobs_and_paths]:
+        raise CorpusError(f"working tree fixtures/ differs from {tag}")
+    revision = _git(root, "rev-parse", "HEAD")
+    return CorpusIdentity(version, revision + DIRTY_SUFFIX if dirty else revision)
 
 
 def _inputs(operation: str, from_: str, to: str) -> list[list[str]]:
@@ -212,27 +228,54 @@ def read_results(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_bytes().decode("ascii").splitlines()]
 
 
+def read_recorded_results(path: Path) -> list[dict[str, Any]]:
+    records = read_results(path)
+    if any(record["corpus_revision"].endswith(DIRTY_SUFFIX) for record in records):
+        raise CorpusError(f"{path}: records from a dirty checkout cannot be published")
+    return records
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m adapters.runner", description=__doc__.split("\n\n")[0])
     parser.add_argument("adapters", nargs="*", help=f"default: all ({', '.join(sorted(REGISTRY))})")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1], help="corpus checkout")
+    parser.add_argument("--output", type=Path, help="JSON Lines output path for a single adapter")
+    parser.add_argument("--allow-dirty", action="store_true", help="allow local changes outside fixtures/")
+    parser.add_argument("--scenarios", nargs="+", metavar="ID", help="run only the named scenarios")
     args = parser.parse_args(argv)
 
+    names = args.adapters or sorted(REGISTRY)
+    if args.output is not None and len(names) != 1:
+        parser.error("--output requires one adapter")
     root = args.root.resolve()
+    output = args.output.resolve() if args.output is not None else None
+    if output is not None and (
+        output == (root / "SHA256SUMS").resolve()
+        or any(output.is_relative_to((root / name).resolve()) for name in ("fixtures", "data"))
+    ):
+        parser.error("--output cannot name a corpus file")
     try:
-        identity = corpus_identity(root)
+        identity = corpus_identity(root, allow_dirty=args.allow_dirty)
     except CorpusError as e:
         print(f"refusing to run: {e}", file=sys.stderr)
         return 2
+    recorded_output = output is None or output.is_relative_to((root / RESULTS_DIR).resolve())
+    if identity.dirty and recorded_output:
+        parser.error("dirty runs require --output outside results/")
+    if args.scenarios is not None:
+        unknown = set(args.scenarios) - {directory.name for directory in scenario_dirs(root / "fixtures")}
+        if unknown:
+            parser.error(f"unknown scenarios: {', '.join(sorted(unknown))}")
+        if recorded_output:
+            parser.error("filtered runs require --output outside results/")
     print(f"corpus {identity.version} at {identity.revision}")
-    for name in args.adapters or sorted(REGISTRY):
+    for name in names:
         adapter = load_adapter(name)
-        records = observe(root, adapter, identity)
-        path = write_results(results_path(root, adapter.name, identity.version), records)
+        records = observe(root, adapter, identity, args.scenarios)
+        path = write_results(output or results_path(root, adapter.name, identity.version), records)
         errors = sum(r["status"] == "error" for r in records)
-        print(
-            f"{name} {adapter.version}: {len(records)} records ({errors} errors) -> {path.relative_to(root).as_posix()}"
-        )
+        display_path = path.relative_to(root) if path.is_relative_to(root) else path
+        print(f"{name} {adapter.version}: {len(records)} records ({errors} errors) -> {display_path.as_posix()}")
     return 0
 
 
