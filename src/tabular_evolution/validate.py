@@ -22,7 +22,7 @@ from jsonschema.protocols import Validator
 
 from .diff import diff_schemas, mutation_key, renames
 from .generate import MANIFEST
-from .inspect import column_chunks, describe_schema, dictionaries, parquet_schema_text, read_table
+from .inspect import arrow_features, column_chunks, describe_schema, dictionaries, parquet_schema_text, read_table
 from .values import Instant, canonical_json, column_values, encode, fingerprint, flatten, same
 
 SCHEMA_PATH = Path("schema") / "scenario.schema.json"
@@ -117,12 +117,14 @@ def check_manifest(scenario: LoadedScenario, validator: Validator) -> list[str]:
 def check_versions(scenario: LoadedScenario) -> list[str]:
     problems: list[str] = []
     identity = scenario.manifest["row_identity"]
+    observed_features: set[str] = set()
     for vid, v in scenario.versions.items():
         path = scenario.path(vid)
         if not path.is_file():
             problems.append(f"{vid}: file {v['file']} does not exist")
             continue
         table = scenario.table(vid)
+        observed_features.update(arrow_features(table.schema))
         actual_schema = describe_schema(table.schema)
 
         if actual_schema != v["schema"]:
@@ -155,6 +157,10 @@ def check_versions(scenario: LoadedScenario) -> list[str]:
 
         if dictionaries(table) != v["dictionaries"]:
             problems.append(f"{vid}: declared dictionaries {v['dictionaries']} != actual {dictionaries(table)}")
+    declared = scenario.manifest.get("arrow_features")
+    actual = sorted(observed_features)
+    if declared is not None and declared != actual:
+        problems.append(f"declared arrow_features {declared} != actual {actual}")
     return problems
 
 

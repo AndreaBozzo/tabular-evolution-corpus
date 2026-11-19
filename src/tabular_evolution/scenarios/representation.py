@@ -34,6 +34,7 @@ def string_to_large_string() -> Scenario:
             "(BYTE_ARRAY, String), so a reader that ignores the Arrow schema sees no change at all.",
         ],
         tags=["change-type", "string", "offsets", "unicode", "arrow-only"],
+        arrow_features=("large",),
         row_identity=["id"],
         versions=[
             Version(
@@ -72,6 +73,7 @@ def string_to_dictionary() -> Scenario:
             "with int32 indices. The int8 index width is not representable in the Parquet schema itself.",
         ],
         tags=["change-type", "dictionary", "categorical", "encoding", "arrow-only"],
+        arrow_features=("dictionary",),
         row_identity=["id"],
         versions=[
             Version(
@@ -117,6 +119,7 @@ def dictionary_reencoded() -> Scenario:
             "dictionary on read and drop it.",
         ],
         tags=["dictionary", "categorical", "encoding", "no-schema-change", "no-value-change"],
+        arrow_features=("dictionary",),
         row_identity=["id"],
         versions=[
             Version(
@@ -157,6 +160,7 @@ def string_to_binary() -> Scenario:
             "At the Parquet level both columns are BYTE_ARRAY; only the String logical annotation is removed.",
         ],
         tags=["change-type", "string", "binary", "unicode"],
+        arrow_features=("binary",),
         row_identity=["id"],
         versions=[
             Version(

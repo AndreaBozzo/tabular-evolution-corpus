@@ -24,6 +24,7 @@ def list_element_widen() -> Scenario:
             "list<item: ...> under the Parquet name 'element', and reads it back that way.",
         ],
         tags=["list", "nested", "change-type", "integer", "widening", "nested-nulls"],
+        arrow_features=("nested",),
         row_identity=["id"],
         versions=[
             Version(
@@ -59,6 +60,7 @@ def add_field_in_list_of_struct() -> Scenario:
             "null list, an empty list and a list with a null element. Existing element values are unchanged."
         ),
         tags=["list", "struct", "nested", "add-field", "nested-nulls"],
+        arrow_features=("nested",),
         row_identity=["id"],
         versions=[
             Version(
@@ -125,6 +127,7 @@ def map_value_widen() -> Scenario:
             "the changed path is attributes[].value.",
         ],
         tags=["map", "nested", "change-type", "integer", "widening"],
+        arrow_features=("nested",),
         row_identity=["id"],
         versions=[
             Version(

@@ -18,6 +18,17 @@ def test_list(capsys: pytest.CaptureFixture[str]) -> None:
     assert [line.split()[0] for line in lines] == SCENARIO_IDS
 
 
+def test_list_requires_arrow_feature(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--root", str(ROOT), "list", "--feature", "large"]) == 0
+    assert [line.split()[0] for line in capsys.readouterr().out.splitlines()] == ["string_to_large_string"]
+
+
+def test_list_excludes_arrow_features(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--root", str(ROOT), "list", "--exclude-feature", "large", "--exclude-feature", "binary"]) == 0
+    found = [line.split()[0] for line in capsys.readouterr().out.splitlines()]
+    assert found == [sid for sid in SCENARIO_IDS if sid not in {"string_to_large_string", "string_to_binary"}]
+
+
 def test_validate(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--root", str(ROOT), "validate"]) == 0
     assert f"{len(SCENARIO_IDS)} scenarios checked, 0 with problems" in capsys.readouterr().out

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "widen_int32_to_int64",
   "title": "Widen int32 to int64",
   "category": "numeric",
@@ -11,6 +11,7 @@
     "widening",
     "numeric-extremes"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

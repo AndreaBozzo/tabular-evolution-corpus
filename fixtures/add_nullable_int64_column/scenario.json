@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "add_nullable_int64_column",
   "title": "Add nullable int64 column",
   "category": "additive",
@@ -11,6 +11,7 @@
     "nullable",
     "numeric-extremes"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

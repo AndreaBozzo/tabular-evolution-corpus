@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "add_required_column",
   "title": "Add non-nullable populated column",
   "category": "additive",
@@ -12,6 +12,7 @@
     "string",
     "non-nullable"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

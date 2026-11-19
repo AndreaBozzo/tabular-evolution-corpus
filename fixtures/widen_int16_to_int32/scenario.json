@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "widen_int16_to_int32",
   "title": "Widen int16 to int32",
   "category": "numeric",
@@ -13,6 +13,7 @@
     "widening",
     "numeric-extremes"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "string_to_binary",
   "title": "string to binary holding the UTF-8 bytes",
   "category": "representation",
@@ -12,6 +12,9 @@
     "string",
     "binary",
     "unicode"
+  ],
+  "arrow_features": [
+    "binary"
   ],
   "row_identity": [
     "id"

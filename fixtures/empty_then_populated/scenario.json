@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "empty_then_populated",
   "title": "Empty typed file followed by a populated file",
   "category": "edge",
@@ -16,6 +16,7 @@
     "infinity",
     "unicode"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

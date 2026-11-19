@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "add_nullable_string_column",
   "title": "Add nullable string column",
   "category": "additive",
@@ -10,6 +10,7 @@
     "string",
     "nullable"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

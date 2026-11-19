@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "dates_before_gregorian_cutover",
   "title": "Rows with dates before the Gregorian calendar cutover are appended",
   "category": "temporal",
@@ -15,6 +15,7 @@
     "calendar",
     "append"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

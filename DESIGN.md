@@ -55,6 +55,7 @@ One `scenario.json` per scenario, validated against
 ```text
 scenario
   schema_version, scenario_id, title, category, description, notes[], tags[]
+  arrow_features[]          features found in any stored Arrow schema
   row_identity[]            top-level columns that identify a row in every version; [] = by position
   versions[]
     id, file, row_count, fingerprint
@@ -96,6 +97,26 @@ dictionary index width, dictionary encoding itself. A reader that ignores that
 metadata sees only the Parquet schema, so every transition also states whether
 the Parquet schema (physical type, logical annotation, repetition, levels,
 field ids) changed: `parquet_schema_preserved`.
+
+### Arrow features
+
+`arrow_features` lists the features found in at least one version of a
+scenario, sorted alphabetically. It looks at the stored Arrow schema,
+including child fields and dictionary types.
+
+| Feature | Present when an Arrow schema contains |
+| --- | --- |
+| `binary` | `binary` or `large_binary` |
+| `dictionary` | a dictionary type |
+| `field_id` | a field with a `PARQUET:field_id` |
+| `large` | `large_string`, `large_binary` or `large_list` |
+| `nested` | a struct, list, large list or map |
+| `null_type` | a field or nested type of Arrow type `null` |
+| `unsigned` | an unsigned integer type |
+
+Parquet dictionary pages do not imply an Arrow dictionary type. Null values
+in other Arrow types do not count toward `null_type`. The catalog carries
+the same list for filtering.
 
 ### Mutations
 
@@ -231,7 +252,7 @@ the data separately. The generator writes both without cross-deriving one from
 the other. The validator then reads the files back and checks every declared
 fact against them: schema, row count, fingerprint, exhaustive mutation list,
 every invariant in both directions, every value relation, writer options,
-dictionary contents. A fixture that disagrees with its manifest fails
+dictionary contents and the set of Arrow features. A fixture that disagrees with its manifest fails
 generation, the test suite, and `verify_release.py`.
 
 ## 6. Initial taxonomy

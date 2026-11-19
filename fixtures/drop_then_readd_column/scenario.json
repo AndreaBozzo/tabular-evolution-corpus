@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "drop_then_readd_column",
   "title": "Column replaced by a different column of the same name",
   "category": "structural",
@@ -13,6 +13,9 @@
     "add-field",
     "field-id",
     "name-reuse"
+  ],
+  "arrow_features": [
+    "field_id"
   ],
   "row_identity": [
     "id"

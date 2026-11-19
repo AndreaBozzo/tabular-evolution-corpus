@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "decimal_precision_increase",
   "title": "Increase decimal precision",
   "category": "numeric",
@@ -13,6 +13,7 @@
     "widening",
     "numeric-extremes"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

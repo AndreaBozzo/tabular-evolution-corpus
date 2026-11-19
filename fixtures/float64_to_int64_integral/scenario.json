@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "float64_to_int64_integral",
   "title": "float64 to int64, integral values only",
   "category": "numeric",
@@ -11,6 +11,7 @@
     "integer",
     "narrowing"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

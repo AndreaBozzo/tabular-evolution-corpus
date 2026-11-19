@@ -46,6 +46,19 @@ def test_duckdb() -> None:
     assert rows[0][1] == ["change_type"]
 
 
+def test_duckdb_filters_on_arrow_features() -> None:
+    duckdb = pytest.importorskip("duckdb")
+    rows = duckdb.sql(
+        f"""
+        SELECT scenario_id
+        FROM read_parquet('{CATALOG}')
+        WHERE list_contains(arrow_features, 'dictionary')
+        ORDER BY scenario_id
+        """
+    ).fetchall()
+    assert rows == [("dictionary_reencoded",), ("string_to_dictionary",)]
+
+
 def test_polars() -> None:
     pl = pytest.importorskip("polars")
     df = pl.read_parquet(CATALOG)

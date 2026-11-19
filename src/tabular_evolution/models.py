@@ -14,7 +14,9 @@ from typing import Any
 
 import pyarrow as pa
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
+
+ARROW_FEATURES = ("binary", "dictionary", "field_id", "large", "nested", "null_type", "unsigned")
 
 CATEGORIES = (
     "additive",
@@ -144,6 +146,7 @@ class Scenario:
     versions: list[Version]
     transitions: list[Transition]
     notes: list[str] = field(default_factory=list)
+    arrow_features: tuple[str, ...] = ()
 
     def to_manifest(self, observed: dict[str, dict[str, Any]]) -> dict[str, Any]:
         """The manifest. `observed[version_id]` supplies the two values that are
@@ -156,6 +159,7 @@ class Scenario:
             "description": self.description,
             "notes": self.notes,
             "tags": self.tags,
+            "arrow_features": sorted(self.arrow_features),
             "row_identity": self.row_identity,
             "versions": [
                 {

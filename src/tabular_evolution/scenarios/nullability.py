@@ -155,6 +155,7 @@ def null_type_to_string() -> Scenario:
             "logical annotation, so the Parquet physical type changes as well (INT32 -> BYTE_ARRAY).",
         ],
         tags=["change-type", "null-type", "type-inference", "all-null"],
+        arrow_features=("null_type",),
         row_identity=["id"],
         versions=[
             Version(

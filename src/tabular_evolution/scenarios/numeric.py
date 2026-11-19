@@ -22,6 +22,7 @@ def _numeric(
     new: tuple[pa.DataType, str, list],
     value_changes: tuple[tuple[str, str], ...] = (),
     notes: list[str] | None = None,
+    arrow_features: tuple[str, ...] = (),
 ) -> Scenario:
     """One non-key column changes type; nothing else changes."""
     old_type, old_name, old_values = old
@@ -34,6 +35,7 @@ def _numeric(
         description=description,
         notes=notes or [],
         tags=tags,
+        arrow_features=arrow_features,
         row_identity=["id"],
         versions=[
             Version(
@@ -238,6 +240,7 @@ def uint32_to_int64() -> Scenario:
         "quantity",
         (pa.uint32(), "uint32", values),
         (pa.int64(), "int64", values),
+        arrow_features=("unsigned",),
         notes=[
             "Parquet stores uint32 as physical INT32 with an unsigned Int(32) annotation, so 2^31 and 2^32 - 1 "
             "are stored as the negative INT32 bit patterns -2147483648 and -1. A reader that ignores the "

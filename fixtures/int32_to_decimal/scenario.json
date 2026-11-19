@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "int32_to_decimal",
   "title": "int32 to decimal with every value unchanged",
   "category": "numeric",
@@ -15,6 +15,7 @@
     "widening",
     "numeric-extremes"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

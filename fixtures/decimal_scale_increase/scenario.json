@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "decimal_scale_increase",
   "title": "Increase decimal scale at fixed precision",
   "category": "numeric",
@@ -12,6 +12,7 @@
     "decimal",
     "scale"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

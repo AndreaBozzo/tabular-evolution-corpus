@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "nested_field_type_change",
   "title": "Nested fields widen from float32 to float64",
   "category": "structural",
@@ -14,6 +14,9 @@
     "floating-point",
     "widening",
     "nested-nulls"
+  ],
+  "arrow_features": [
+    "nested"
   ],
   "row_identity": [
     "id"

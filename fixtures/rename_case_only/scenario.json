@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "rename_case_only",
   "title": "Column name changes case only, without field ids",
   "category": "structural",
@@ -14,6 +14,7 @@
     "case-sensitivity",
     "no-field-id"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

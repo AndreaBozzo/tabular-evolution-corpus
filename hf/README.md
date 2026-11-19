@@ -55,6 +55,7 @@ explicit config, automatic data-file detection would try to load them as one.
 | `category` | string | additive, subtractive, numeric, nullability, representation, structural, temporal, edge |
 | `notes` | list<string> | caveats, e.g. differences that exist only in the stored Arrow schema |
 | `tags` | list<string> | free-form, kebab-case |
+| `arrow_features` | list<string> | checked Arrow features found in any version |
 | `row_identity` | list<string> | columns that identify a row in every version; empty means rows are identified by position |
 | `version_count`, `version_ids`, `row_counts` | int64, list<string>, list<int64> | versions in order |
 | `mutation_count`, `mutation_kinds` | int64, list<string> | structural changes across all transitions |

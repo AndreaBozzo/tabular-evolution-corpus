@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "add_nested_field",
   "title": "Add a field inside a struct",
   "category": "structural",
@@ -10,6 +10,9 @@
     "nested",
     "add-field",
     "nested-nulls"
+  ],
+  "arrow_features": [
+    "nested"
   ],
   "row_identity": [
     "id"

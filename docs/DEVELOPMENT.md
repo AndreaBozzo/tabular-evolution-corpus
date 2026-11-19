@@ -144,7 +144,7 @@ Three things are versioned, independently of each other:
 | what | where | changes when |
 | --- | --- | --- |
 | **Corpus release** (`v0.3.0`) | git tag, GitHub release, Hugging Face tag | any fixture, manifest or catalog change. A release names fixed bytes: its tag is never moved or deleted, and a changed corpus is a new release. |
-| **Manifest format** (`schema_version: "1.0"`) | every `scenario.json` | only the manifest format changes: a new field, mutation kind, relation or invariant, or a changed type spelling. A release that only adds scenarios keeps it. |
+| **Manifest format** (`schema_version: "1.1"`) | every `scenario.json` | only the manifest format changes: a new field, mutation kind, relation or invariant, or a changed type spelling. A release that only adds scenarios keeps it. |
 | **Observation runs** | outside `fixtures/` | never folded back into the corpus. A run is keyed by corpus version, corpus revision and adapter version. |
 
 The Python package version is the corpus version. To cite exact bytes, give
@@ -176,8 +176,8 @@ Non-goals:
 3. **Declare independently.** Add a function in
    `src/tabular_evolution/scenarios/<module>.py` and list it in that module's
    `SCENARIOS`. Build the data with explicit Arrow types, and write the
-   declared schema, mutations and invariants by hand. Do not derive one from
-   the other; the validator's job is to catch their disagreement.
+   declared schema, Arrow features, mutations and invariants by hand. The
+   validator reads the generated files and checks them against these facts.
 4. **Small and deliberate values.** 0 to 30 rows. Every unusual value should
    be named in the description or notes.
 5. **Regenerate and verify:**
@@ -193,7 +193,8 @@ Non-goals:
    or reader-specific behaviour, document it under
    ["Deliberately excluded"](SCENARIOS.md#deliberately-excluded) instead.
 
-New mutation kinds, relations or invariants are schema changes: update
+Adding a mutation kind, relation, invariant or Arrow feature changes the
+manifest format. Update
 `schema/scenario.schema.json`, `models.py`, `diff.py` / `validate.py`,
 [`DESIGN.md`](../DESIGN.md), and add tampering tests showing that the new
 check fails when it is violated.
@@ -213,6 +214,9 @@ check fails when it is violated.
   nanosecond range; and dates before the Gregorian cutover. Common paths
   now follow the diff's field matching, which only those two field-id
   scenarios can tell from matching by name.
+- **Corpus 0.4.0:** manifest format 1.1 declares the Arrow features used
+  across each scenario. The validator checks them against the files, and
+  the catalog and CLI expose them for filtering.
 - **Phase 1: adapters, outside the core package.** A runner, a result
   record schema and three adapters (PyArrow Dataset, DuckDB, Polars), with
   their observations in [OBSERVATIONS.md](OBSERVATIONS.md).

@@ -47,6 +47,28 @@ ORDER BY scenario_id;
 (The pandas, DuckDB and Polars loading paths are exercised by
 `tests/test_catalog_compat.py` after `uv sync --group compat`.)
 
+## Filtering by Arrow feature
+
+Search across the stored Arrow schemas of all versions in each scenario.
+
+```bash
+uv run tec list --feature nested
+uv run tec list --exclude-feature nested --exclude-feature dictionary
+```
+
+Require multiple features by repeating `--feature`. Each
+`--exclude-feature` removes any scenario with that feature. The catalog
+exposes the same `arrow_features` as a list of strings.
+
+```sql
+SELECT scenario_id, arrow_features
+FROM read_parquet('data/scenarios.parquet')
+WHERE list_contains(arrow_features, 'unsigned')
+ORDER BY scenario_id;
+```
+
+See [Arrow features](../DESIGN.md#arrow-features) for the vocabulary.
+
 ## Vendoring fixtures
 
 From a corpus Git checkout, export the scenarios your test suite needs:

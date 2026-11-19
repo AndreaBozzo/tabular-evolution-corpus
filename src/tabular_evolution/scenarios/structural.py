@@ -84,6 +84,7 @@ def rename_column_with_field_id() -> Scenario:
             "another with the same values. The corpus only records a rename when the file carries evidence for it.",
         ],
         tags=["rename-field", "field-id", "unicode"],
+        arrow_features=("field_id",),
         row_identity=["id"],
         versions=[
             Version(
@@ -143,6 +144,7 @@ def _address(scenario_id: str, title: str, description: str, old_first: bool) ->
         category="structural",
         description=description,
         tags=["struct", "nested", "add-field" if old_first else "remove-field", "nested-nulls"],
+        arrow_features=("nested",),
         row_identity=["id"],
         versions=[
             Version("v0", b0, [col("id", "int64", False), col("address", t0)]),
@@ -206,6 +208,7 @@ def nested_field_type_change() -> Scenario:
             "in that row because their parent is null.",
         ],
         tags=["struct", "nested", "change-type", "floating-point", "widening", "nested-nulls"],
+        arrow_features=("nested",),
         row_identity=["id"],
         versions=[
             Version(
@@ -248,6 +251,7 @@ def reorder_nested_fields() -> Scenario:
             "fields by position pairs postcode with street.",
         ],
         tags=["struct", "nested", "reorder-fields", "nested-nulls"],
+        arrow_features=("nested",),
         row_identity=["id"],
         versions=[
             Version(
@@ -290,6 +294,7 @@ def drop_then_readd_column() -> Scenario:
             "columns are distinct. A reader that matches columns by name pairs them.",
         ],
         tags=["remove-field", "add-field", "field-id", "name-reuse"],
+        arrow_features=("field_id",),
         row_identity=["id"],
         versions=[
             Version(
@@ -354,6 +359,7 @@ def rename_then_reuse_name() -> Scenario:
             "v1 is a new column; by name, status is present in both versions with different values.",
         ],
         tags=["rename-field", "add-field", "field-id", "name-reuse"],
+        arrow_features=("field_id",),
         row_identity=["id"],
         versions=[
             Version(

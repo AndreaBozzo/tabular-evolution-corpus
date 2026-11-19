@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "null_type_to_string",
   "title": "Null-typed column becomes a string column",
   "category": "nullability",
@@ -12,6 +12,9 @@
     "null-type",
     "type-inference",
     "all-null"
+  ],
+  "arrow_features": [
+    "null_type"
   ],
   "row_identity": [
     "id"

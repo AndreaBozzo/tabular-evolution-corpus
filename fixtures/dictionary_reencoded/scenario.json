@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "dictionary_reencoded",
   "title": "Dictionary contents change without any value change",
   "category": "representation",
@@ -14,6 +14,9 @@
     "encoding",
     "no-schema-change",
     "no-value-change"
+  ],
+  "arrow_features": [
+    "dictionary"
   ],
   "row_identity": [
     "id"

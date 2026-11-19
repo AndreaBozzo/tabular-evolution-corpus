@@ -69,7 +69,7 @@ def test_committed_records_reproduce_with_the_installed_engine(path: Path, monke
     records = read_results(path)
     first = records[0]
     if first["corpus_version"] != __version__:
-        pytest.skip(f"results for corpus {first['corpus_version']}, checkout is {__version__}")
+        pytest.skip(f"results use fixtures from tag v{first['corpus_version']}; checkout is v{__version__}")
     if importlib.util.find_spec(ENGINE_MODULE[path.stem]) is None:
         pytest.skip(f"{ENGINE_MODULE[path.stem]} is not installed")
     adapter = load_adapter(path.stem)

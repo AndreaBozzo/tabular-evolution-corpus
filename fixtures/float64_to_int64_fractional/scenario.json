@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "float64_to_int64_fractional",
   "title": "float64 to int64 with fractional values",
   "category": "numeric",
@@ -15,6 +15,7 @@
     "narrowing",
     "precision-loss"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

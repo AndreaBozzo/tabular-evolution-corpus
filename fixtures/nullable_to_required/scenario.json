@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "nullable_to_required",
   "title": "Nullable column becomes non-nullable",
   "category": "nullability",
@@ -10,6 +10,7 @@
     "string",
     "no-value-change"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

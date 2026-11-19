@@ -9,13 +9,21 @@ from pathlib import Path
 
 from .export import export_fixtures
 from .inspect import inspect_file
+from .models import ARROW_FEATURES
 from .validate import LoadedScenario, load_json, observe_transition, scenario_dirs, validate_corpus
 from .values import encode
 
 
-def _list(root: Path) -> int:
+def _list(root: Path, include: set[str], exclude: set[str]) -> int:
     for d in scenario_dirs(root / "fixtures"):
         m = load_json(d / "scenario.json")
+        if include or exclude:
+            if "arrow_features" not in m:
+                print(f"{d.name}: feature filters require a manifest with arrow_features", file=sys.stderr)
+                return 2
+            features = set(m["arrow_features"])
+            if not include <= features or features & exclude:
+                continue
         kinds = sorted({mu["kind"] for t in m["transitions"] for mu in t["mutations"]}) or ["-"]
         print(f"{m['scenario_id']:<32} {m['category']:<15} {len(m['versions'])}v  {','.join(kinds)}")
     return 0
@@ -59,7 +67,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tec", description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("."), help="corpus checkout (default: .)")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("list", help="one line per scenario")
+    listing = sub.add_parser("list", help="one line per scenario")
+    listing.add_argument("--feature", action="append", choices=ARROW_FEATURES, default=[], help="require this feature")
+    listing.add_argument(
+        "--exclude-feature",
+        action="append",
+        choices=ARROW_FEATURES,
+        default=[],
+        help="omit scenarios with this feature",
+    )
     inspect = sub.add_parser("inspect", help="facts the PyArrow reference inspector reads from a scenario's files")
     inspect.add_argument("scenario_id")
     validate = sub.add_parser("validate", help="check manifests against their files")
@@ -70,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "list":
-        return _list(args.root)
+        return _list(args.root, set(args.feature), set(args.exclude_feature))
     if args.command == "inspect":
         return _inspect(args.root, args.scenario_id)
     if args.command == "export":

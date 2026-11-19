@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "add_all_null_column",
   "title": "Add a typed all-null column, then backfill it",
   "category": "additive",
@@ -13,6 +13,7 @@
     "backfill",
     "multi-version"
   ],
+  "arrow_features": [],
   "row_identity": [
     "id"
   ],

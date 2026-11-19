@@ -23,6 +23,38 @@ def field_id(field: pa.Field) -> int | None:
     return int(meta[FIELD_ID_KEY]) if FIELD_ID_KEY in meta else None
 
 
+def arrow_features(schema: pa.Schema) -> set[str]:
+    """Features present anywhere in the stored Arrow schema."""
+    features: set[str] = set()
+
+    def visit_field(field: pa.Field) -> None:
+        if field_id(field) is not None:
+            features.add("field_id")
+        visit_type(field.type)
+
+    def visit_type(dtype: pa.DataType) -> None:
+        if pat.is_struct(dtype) or pat.is_list(dtype) or pat.is_large_list(dtype) or pat.is_map(dtype):
+            features.add("nested")
+        if pat.is_dictionary(dtype):
+            features.add("dictionary")
+            visit_type(dtype.index_type)
+            visit_type(dtype.value_type)
+        if pat.is_large_binary(dtype) or pat.is_large_string(dtype) or pat.is_large_list(dtype):
+            features.add("large")
+        if pat.is_binary(dtype) or pat.is_large_binary(dtype):
+            features.add("binary")
+        if pat.is_null(dtype):
+            features.add("null_type")
+        if pat.is_unsigned_integer(dtype):
+            features.add("unsigned")
+        for index in range(dtype.num_fields):
+            visit_field(dtype.field(index))
+
+    for field in schema:
+        visit_field(field)
+    return features
+
+
 def describe_schema(schema: pa.Schema) -> list[dict[str, Any]]:
     """The manifest form of an Arrow schema: top-level fields in file order."""
     fields = []

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "rows_appended_without_key",
   "title": "Rows appended to a dataset without a key",
   "category": "edge",
@@ -13,6 +13,7 @@
     "duplicate-rows",
     "no-schema-change"
   ],
+  "arrow_features": [],
   "row_identity": [],
   "versions": [
     {

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "scenario_id": "map_value_widen",
   "title": "Map values widen from int32 to int64",
   "category": "structural",
@@ -13,6 +13,9 @@
     "change-type",
     "integer",
     "widening"
+  ],
+  "arrow_features": [
+    "nested"
   ],
   "row_identity": [
     "id"
