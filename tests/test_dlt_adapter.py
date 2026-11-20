@@ -24,18 +24,26 @@ def additive_records() -> list[dict[str, Any]]:
 
 
 def test_declared_modes() -> None:
+    contracts = (
+        "freeze_columns",
+        "freeze_data_type",
+        "freeze_columns_and_data_type",
+        "evolve_columns_freeze_data_type",
+        "evolve_all",
+    )
     assert dlt_adapter.DltAdapter.modes == {
         "append_to_table": (
             "default",
-            "freeze_columns",
-            "freeze_data_type",
-            "freeze_columns_and_data_type",
-            "evolve_columns_freeze_data_type",
-            "evolve_all",
+            *contracts,
             "filesystem",
+            "filesystem_freeze_columns",
+            "filesystem_freeze_data_type",
+            "filesystem_freeze_columns_and_data_type",
+            "filesystem_evolve_columns_freeze_data_type",
+            "filesystem_evolve_all",
         ),
-        "replace_table": ("default",),
-        "merge_into_table": ("default",),
+        "replace_table": ("default", *contracts),
+        "merge_into_table": ("default", *contracts),
     }
 
 
@@ -300,3 +308,58 @@ def test_same_pipeline_name_keeps_calls_isolated(monkeypatch: pytest.MonkeyPatch
     assert len({pipeline.working_dir for pipeline in pipelines}) == 3
     assert all(not Path(pipeline.working_dir).exists() for pipeline in pipelines)
     assert not Container()[PipelineContext].is_active()
+
+
+@pytest.mark.parametrize(
+    ("operation", "default_mode", "freeze_mode", "rows"),
+    [
+        ("replace_table", "default", "freeze_columns", 6),
+        ("merge_into_table", "default", "freeze_columns", 6),
+        ("append_to_table", "filesystem", "filesystem_freeze_columns", 12),
+    ],
+)
+def test_freeze_columns_applies_to_replace_merge_and_filesystem(
+    operation: str, default_mode: str, freeze_mode: str, rows: int
+) -> None:
+    from dlt.common.schema.exceptions import DataValidationError
+
+    paths = [str(ROOT / "fixtures/add_nullable_int64_column" / f"{version}.parquet") for version in ("v0", "v1")]
+    adapter = dlt_adapter.DltAdapter()
+    default = adapter.describe(adapter.read(operation, default_mode, paths))
+    assert default.row_count == rows
+    assert default.fields is not None
+    assert [field.name for field in default.fields] == ["id", "name", "loyalty_points"]
+    with pytest.raises(DataValidationError) as error:
+        adapter.read(operation, freeze_mode, paths)
+    assert str(error.value) == (
+        "In schema `corpus`: In Table: `versions` Column: `loyalty_points` . "
+        "Contract on `columns` with `contract_mode=freeze` is violated. "
+        "Can't add table column `loyalty_points` to table `versions` because `columns` are frozen."
+    )
+    reversed_ = adapter.describe(adapter.read(operation, freeze_mode, paths[::-1]))
+    assert reversed_.row_count == rows
+    assert reversed_.fields is not None
+    assert [field.name for field in reversed_.fields] == ["id", "name", "loyalty_points"]
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "filesystem_freeze_columns",
+        "filesystem_freeze_data_type",
+        "filesystem_freeze_columns_and_data_type",
+        "filesystem_evolve_columns_freeze_data_type",
+        "filesystem_evolve_all",
+    ],
+)
+def test_filesystem_contract_reads_back_parquet(mode: str) -> None:
+    paths = [str(ROOT / "fixtures/add_nullable_int64_column" / f"{version}.parquet") for version in ("v1", "v0")]
+    adapter = dlt_adapter.DltAdapter()
+    observation = adapter.describe(adapter.read("append_to_table", mode, paths))
+    assert observation.row_count == 12
+    assert observation.fields is not None
+    assert [(field.name, field.native_type) for field in observation.fields] == [
+        ("id", "int64"),
+        ("name", "string"),
+        ("loyalty_points", "int64"),
+    ]

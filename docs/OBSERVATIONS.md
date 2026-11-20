@@ -42,8 +42,8 @@ recorded. [delta-rs documents these write modes](https://delta-io.github.io/delt
 
 dlt loads each file as an Arrow table into a fresh local destination.
 Each call uses pipeline name `tec` in its own working directory. For DuckDB
-appends, `default` uses dlt's default contract. The named modes set the
-following contract entities.
+append, replace and merge, `default` uses dlt's default contract. The named
+modes set the following contract entities.
 
 dlt 1.32.0 creates paths up to 129 characters below the run directory, or
 147 beyond `TMP`; Windows needs long-path support or a shorter `TMP` above
@@ -57,14 +57,15 @@ about 112 characters.
 | `evolve_columns_freeze_data_type` | default | evolve | freeze |
 | `evolve_all` | evolve | evolve | evolve |
 
-`replace_table` and `merge_into_table` use DuckDB and dlt's default
-contract. Each load uses the record's write disposition. Merge takes its
+`replace_table` and `merge_into_table` use DuckDB with each contract above.
+Each load uses the record's write disposition. Merge takes its
 primary key from the manifest's `row_identity` when it has columns. For
 position-based scenarios, dlt receives merge without a primary key.
 
 `filesystem` appends to a local filesystem destination in Parquet with
-dlt's default contract. PyArrow reads the loaded Parquet files and
-concatenates them with permissive schema promotion. The recorded schema,
+dlt's default contract; `filesystem_<contract>` selects each named contract
+above for the same destination and append operation. PyArrow reads the loaded
+Parquet files and concatenates them with permissive schema promotion. The recorded schema,
 nullability and row count come from that readback or from the DuckDB table.
 
 In format 1.3, `engine_schema_hints` records dlt's stored attributes for each

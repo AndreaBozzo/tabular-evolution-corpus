@@ -320,8 +320,11 @@ the manifest):
   `merge_into_table` create a table from the first input and write the
   second using the named disposition. A successful result records the
   destination's schema and row count. dlt's `filesystem` append mode reads
-  back the Parquet files. A successful dlt result records its stored column
-  attributes in `engine_schema_hints`, keyed by the names in `result_schema`.
+  back the Parquet files; `filesystem_<contract>` selects a named schema
+  contract for that destination. DuckDB append, replace and merge each expose
+  `default` and all five named schema contracts. These modes use the existing
+  identifier vocabulary and result format 1.3. A successful dlt result records
+  its stored column attributes in `engine_schema_hints`, keyed by the names in `result_schema`.
   Other results in this format carry null.
 - **Types.** `type` is the corpus type vocabulary where the engine's type has
   a clear equivalent, otherwise null; `native_type` is always the engine's own

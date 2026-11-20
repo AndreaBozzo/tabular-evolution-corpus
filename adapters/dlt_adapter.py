@@ -80,9 +80,9 @@ class DltResult:
 class DltAdapter(Adapter):
     name = "dlt"
     modes = {
-        "append_to_table": ("default", *CONTRACTS, "filesystem"),
-        "replace_table": ("default",),
-        "merge_into_table": ("default",),
+        "append_to_table": ("default", *CONTRACTS, "filesystem", *(f"filesystem_{name}" for name in CONTRACTS)),
+        "replace_table": ("default", *CONTRACTS),
+        "merge_into_table": ("default", *CONTRACTS),
     }
 
     @property
@@ -94,12 +94,17 @@ class DltAdapter(Adapter):
             raise AssertionError(f"unsupported dlt call: {operation}, {mode}, {paths}")
         # Set this before any config access initializes dlt's runtime.
         os.environ["RUNTIME__DLTHUB_TELEMETRY"] = "false"
-        contract = CONTRACTS.get(mode)
+        filesystem = mode == "filesystem" or mode.startswith("filesystem_")
+        contract = CONTRACTS.get(mode.removeprefix("filesystem_"))
+        run_kwargs: dict[str, Any] = {}
+        if contract is not None:
+            run_kwargs["schema_contract"] = contract
+        if filesystem:
+            run_kwargs["loader_file_format"] = "parquet"
         disposition = DISPOSITIONS[operation]
         keys = load_json(Path(paths[0]).with_name(MANIFEST))["row_identity"] if disposition == "merge" else []
         with TemporaryDirectory(prefix="tec-dlt-") as temp:
             database = Path(temp) / "destination.duckdb"
-            filesystem = mode == "filesystem"
             destination = (
                 dlt.destinations.filesystem(bucket_url=(Path(temp) / "bucket").as_uri())
                 if filesystem
@@ -125,12 +130,7 @@ class DltAdapter(Adapter):
             try:
                 for path in paths:
                     data = source(pq.read_table(path))
-                    if filesystem:
-                        pipeline.run(data, loader_file_format="parquet")
-                    elif contract is not None:
-                        pipeline.run(data, schema_contract=contract)
-                    else:
-                        pipeline.run(data)
+                    pipeline.run(data, **run_kwargs)
                 schema_hints = {
                     name: {key: _hint_value(value) for key, value in column.items() if key != "name"}
                     for name, column in pipeline.default_schema.get_table_columns("versions").items()
