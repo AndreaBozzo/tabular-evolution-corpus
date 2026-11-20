@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
-from uuid import uuid4
 
 import dlt
 import duckdb
@@ -107,14 +106,15 @@ class DltAdapter(Adapter):
                 else dlt.destinations.duckdb(str(database))
             )
             pipeline = dlt.pipeline(
-                pipeline_name=f"tec_{uuid4().hex}",
+                # Each call has its own pipelines_dir and destination.
+                pipeline_name="tec",
                 pipelines_dir=str(Path(temp) / "pipelines"),
                 destination=destination,
                 dataset_name="corpus",
             )
 
             # A fixed source name keeps schema names in engine messages
-            # independent of the unique pipeline name.
+            # independent of the pipeline name.
             @dlt.source(name="corpus")
             def source(table: pa.Table):
                 resource = dlt.resource(table, name="versions", write_disposition=disposition)

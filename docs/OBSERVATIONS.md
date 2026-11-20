@@ -41,9 +41,13 @@ rules, append with `schema_mode="merge"`, or overwrite with
 recorded. [delta-rs documents these write modes](https://delta-io.github.io/delta-rs/usage/writing/).
 
 dlt loads each file as an Arrow table into a fresh local destination.
-Each call uses its own pipeline name and working directory. For DuckDB
+Each call uses pipeline name `tec` in its own working directory. For DuckDB
 appends, `default` uses dlt's default contract. The named modes set the
 following contract entities.
+
+dlt 1.32.0 creates paths up to 129 characters below the run directory, or
+147 beyond `TMP`; Windows needs long-path support or a shorter `TMP` above
+about 112 characters.
 
 | Mode | Tables | Columns | Data type |
 | --- | --- | --- | --- |

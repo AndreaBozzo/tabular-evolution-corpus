@@ -264,3 +264,39 @@ def test_schema_update_error_omits_internal_table_order() -> None:
     with pytest.raises(DatabaseTransientException) as error:
         dlt_adapter.DltAdapter().read("append_to_table", "default", paths)
     assert str(error.value) == "Parser Error: Adding columns with constraints not yet supported"
+
+
+@pytest.mark.parametrize("mode", ["default", "filesystem"])
+def test_same_pipeline_name_keeps_calls_isolated(monkeypatch: pytest.MonkeyPatch, mode: str) -> None:
+    from dlt.common.configuration.container import Container
+    from dlt.common.pipeline import PipelineContext
+    from dlt.common.schema.exceptions import DataValidationError
+
+    create_pipeline = dlt.pipeline
+    pipelines = []
+
+    def capture_pipeline(**kwargs):
+        pipeline = create_pipeline(**kwargs)
+        pipelines.append(pipeline)
+        return pipeline
+
+    monkeypatch.setattr(dlt, "pipeline", capture_pipeline)
+    adapter = dlt_adapter.DltAdapter()
+
+    def read(scenario: str, contract: str):
+        paths = [str(ROOT / "fixtures" / scenario / f"{version}.parquet") for version in ("v0", "v1")]
+        return adapter.describe(adapter.read("append_to_table", contract, paths))
+
+    first = read("add_nullable_int64_column", mode)
+    assert first.row_count == 12
+    with pytest.raises(DataValidationError, match="`columns` are frozen"):
+        read("add_nullable_int64_column", "freeze_columns")
+    assert not Container()[PipelineContext].is_active()
+    second = read("rows_deleted", mode)
+    assert second.row_count == 10
+    assert second.fields is not None
+    assert [field.name for field in second.fields] == ["id", "status", "amount"]
+    assert [pipeline.pipeline_name for pipeline in pipelines] == ["tec"] * 3
+    assert len({pipeline.working_dir for pipeline in pipelines}) == 3
+    assert all(not Path(pipeline.working_dir).exists() for pipeline in pipelines)
+    assert not Container()[PipelineContext].is_active()
